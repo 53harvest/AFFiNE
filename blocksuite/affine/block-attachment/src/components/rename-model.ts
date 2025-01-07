@@ -1,12 +1,14 @@
 import { ConfirmIcon } from '@blocksuite/affine-components/icons';
 import { toast } from '@blocksuite/affine-components/toast';
 import type { AttachmentBlockModel } from '@blocksuite/affine-model';
+import { stopPropagation } from '@blocksuite/affine-shared/utils';
 import type { EditorHost } from '@blocksuite/block-std';
 import { html } from 'lit';
 import { createRef, ref } from 'lit/directives/ref.js';
 
 import { renameStyles } from './styles.js';
 
+// TODO(@fundon): refactor `rename` modal
 export const RenameModal = ({
   editorHost,
   model,
@@ -65,16 +67,20 @@ export const RenameModal = ({
     <style>
       ${renameStyles}
     </style>
-    <div
+    <!--div
       class="affine-attachment-rename-overlay-mask"
       @click="${() => abortController.abort()}"
-    ></div>
+    ></div-->
     <div class="affine-attachment-rename-container">
       <div class="affine-attachment-rename-input-wrapper">
         <input
           ${ref(inputRef)}
+          autofocus
           type="text"
           .value=${fileName}
+          @pointerdown=${stopPropagation}
+          @mousedown=${stopPropagation}
+          @click=${stopPropagation}
           @input=${onInput}
           @keydown=${onKeydown}
         />
