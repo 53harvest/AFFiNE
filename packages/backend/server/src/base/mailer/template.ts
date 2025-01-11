@@ -228,7 +228,7 @@ type RoleChangedMail = {
 
 export type RoleChangedMailParams = {
   name: string;
-  role: 'owner' | 'admin' | 'member' | 'readonly';
+  role: 'owner' | 'admin' | 'member' | 'external';
 };
 
 export const getRoleChangedTemplate = (

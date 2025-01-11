@@ -11,7 +11,7 @@ import {
 } from '../../../base';
 import { Models } from '../../../models';
 import { DocContentService } from '../../doc-renderer';
-import { Permission, PermissionService } from '../../permission';
+import { PermissionService, WorkspaceRole } from '../../permission';
 import { WorkspaceBlobStorage } from '../../storage';
 
 export const defaultWorkspaceAvatar =
@@ -24,10 +24,10 @@ export type InviteInfo = {
 };
 
 const PermissionToRole = {
-  [Permission.Read]: 'readonly' as const,
-  [Permission.Write]: 'member' as const,
-  [Permission.Admin]: 'admin' as const,
-  [Permission.Owner]: 'owner' as const,
+  [WorkspaceRole.External]: 'external' as const,
+  [WorkspaceRole.Collaborator]: 'member' as const,
+  [WorkspaceRole.Admin]: 'admin' as const,
+  [WorkspaceRole.Owner]: 'owner' as const,
 };
 
 @Injectable()
@@ -220,7 +220,7 @@ export class WorkspaceService {
 
   async sendRoleChangedEmail(
     userId: string,
-    ws: { id: string; role: Permission }
+    ws: { id: string; role: WorkspaceRole }
   ) {
     const user = await this.models.user.getPublicUser(userId);
     if (!user) throw new UserNotFound();

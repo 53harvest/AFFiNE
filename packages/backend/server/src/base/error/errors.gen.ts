@@ -181,6 +181,16 @@ export class EmailVerificationRequired extends UserFriendlyError {
   }
 }
 @ObjectType()
+class WorkspacePermissionNotFoundDataType {
+  @Field() spaceId!: string
+}
+
+export class WorkspacePermissionNotFound extends UserFriendlyError {
+  constructor(args: WorkspacePermissionNotFoundDataType, message?: string | ((args: WorkspacePermissionNotFoundDataType) => string)) {
+    super('internal_server_error', 'workspace_permission_not_found', message, args);
+  }
+}
+@ObjectType()
 class SpaceNotFoundDataType {
   @Field() spaceId!: string
 }
@@ -238,6 +248,16 @@ class SpaceOwnerNotFoundDataType {
 export class SpaceOwnerNotFound extends UserFriendlyError {
   constructor(args: SpaceOwnerNotFoundDataType, message?: string | ((args: SpaceOwnerNotFoundDataType) => string)) {
     super('internal_server_error', 'space_owner_not_found', message, args);
+  }
+}
+@ObjectType()
+class SpaceShouldHaveOnlyOneOwnerDataType {
+  @Field() spaceId!: string
+}
+
+export class SpaceShouldHaveOnlyOneOwner extends UserFriendlyError {
+  constructor(args: SpaceShouldHaveOnlyOneOwnerDataType, message?: string | ((args: SpaceShouldHaveOnlyOneOwnerDataType) => string)) {
+    super('invalid_input', 'space_should_have_only_one_owner', message, args);
   }
 }
 @ObjectType()
@@ -618,12 +638,14 @@ export enum ErrorNames {
   ACTION_FORBIDDEN,
   ACCESS_DENIED,
   EMAIL_VERIFICATION_REQUIRED,
+  WORKSPACE_PERMISSION_NOT_FOUND,
   SPACE_NOT_FOUND,
   MEMBER_NOT_FOUND_IN_SPACE,
   NOT_IN_SPACE,
   ALREADY_IN_SPACE,
   SPACE_ACCESS_DENIED,
   SPACE_OWNER_NOT_FOUND,
+  SPACE_SHOULD_HAVE_ONLY_ONE_OWNER,
   DOC_NOT_FOUND,
   DOC_ACCESS_DENIED,
   VERSION_REJECTED,
@@ -678,5 +700,5 @@ registerEnumType(ErrorNames, {
 export const ErrorDataUnionType = createUnionType({
   name: 'ErrorDataUnion',
   types: () =>
-    [WrongSignInCredentialsDataType, UnknownOauthProviderDataType, MissingOauthQueryParameterDataType, InvalidEmailDataType, InvalidPasswordLengthDataType, SpaceNotFoundDataType, MemberNotFoundInSpaceDataType, NotInSpaceDataType, AlreadyInSpaceDataType, SpaceAccessDeniedDataType, SpaceOwnerNotFoundDataType, DocNotFoundDataType, DocAccessDeniedDataType, VersionRejectedDataType, InvalidHistoryTimestampDataType, DocHistoryNotFoundDataType, BlobNotFoundDataType, UnsupportedSubscriptionPlanDataType, SubscriptionAlreadyExistsDataType, SubscriptionNotExistsDataType, SameSubscriptionRecurringDataType, SubscriptionPlanNotFoundDataType, CopilotMessageNotFoundDataType, CopilotPromptNotFoundDataType, CopilotProviderSideErrorDataType, RuntimeConfigNotFoundDataType, InvalidRuntimeConfigTypeDataType] as const,
+    [WrongSignInCredentialsDataType, UnknownOauthProviderDataType, MissingOauthQueryParameterDataType, InvalidEmailDataType, InvalidPasswordLengthDataType, WorkspacePermissionNotFoundDataType, SpaceNotFoundDataType, MemberNotFoundInSpaceDataType, NotInSpaceDataType, AlreadyInSpaceDataType, SpaceAccessDeniedDataType, SpaceOwnerNotFoundDataType, SpaceShouldHaveOnlyOneOwnerDataType, DocNotFoundDataType, DocAccessDeniedDataType, VersionRejectedDataType, InvalidHistoryTimestampDataType, DocHistoryNotFoundDataType, BlobNotFoundDataType, UnsupportedSubscriptionPlanDataType, SubscriptionAlreadyExistsDataType, SubscriptionNotExistsDataType, SameSubscriptionRecurringDataType, SubscriptionPlanNotFoundDataType, CopilotMessageNotFoundDataType, CopilotPromptNotFoundDataType, CopilotProviderSideErrorDataType, RuntimeConfigNotFoundDataType, InvalidRuntimeConfigTypeDataType] as const,
 });

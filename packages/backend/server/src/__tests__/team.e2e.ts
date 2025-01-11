@@ -13,7 +13,7 @@ import { AppModule } from '../app.module';
 import { EventEmitter } from '../base';
 import { AuthService } from '../core/auth';
 import { DocContentService } from '../core/doc-renderer';
-import { Permission, PermissionService } from '../core/permission';
+import { PermissionService, WorkspaceRole } from '../core/permission';
 import { QuotaManagementService, QuotaService, QuotaType } from '../core/quota';
 import { WorkspaceType } from '../core/workspaces';
 import {
@@ -342,7 +342,11 @@ test('should be able to grant team member permission', async t => {
   {
     // owner should be able to grant permission
     t.true(
-      await permissions.tryCheckWorkspaceIs(ws.id, read.id, Permission.Read),
+      await permissions.tryCheckWorkspaceIs(
+        ws.id,
+        read.id,
+        WorkspaceRole.Collaborator
+      ),
       'should be able to check permission'
     );
     t.truthy(
@@ -350,7 +354,11 @@ test('should be able to grant team member permission', async t => {
       'should be able to grant permission'
     );
     t.true(
-      await permissions.tryCheckWorkspaceIs(ws.id, read.id, Permission.Admin),
+      await permissions.tryCheckWorkspaceIs(
+        ws.id,
+        read.id,
+        WorkspaceRole.Admin
+      ),
       'should be able to check permission'
     );
   }
@@ -697,7 +705,11 @@ test('should be able to emit events', async t => {
       event.emit.lastCall.args,
       [
         'workspace.members.roleChanged',
-        { userId: read.id, workspaceId: tws.id, permission: Permission.Admin },
+        {
+          userId: read.id,
+          workspaceId: tws.id,
+          permission: WorkspaceRole.Admin,
+        },
       ],
       'should emit role changed event'
     );
@@ -711,7 +723,11 @@ test('should be able to emit events', async t => {
       roleChanged,
       [
         'workspace.members.roleChanged',
-        { userId: read.id, workspaceId: tws.id, permission: Permission.Owner },
+        {
+          userId: read.id,
+          workspaceId: tws.id,
+          permission: WorkspaceRole.Owner,
+        },
       ],
       'should emit role changed event'
     );
