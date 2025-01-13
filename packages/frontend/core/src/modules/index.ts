@@ -37,6 +37,7 @@ import { configurePeekViewModule } from './peek-view';
 import { configurePermissionsModule } from './permissions';
 import { configureQuickSearchModule } from './quicksearch';
 import { configureShareDocsModule } from './share-doc';
+import { configureShareMenuModule } from './share-menu';
 import { configureShareSettingModule } from './share-setting';
 import {
   configureCommonGlobalStorageImpls,
@@ -100,4 +101,5 @@ export function configureCommonModules(framework: Framework) {
   configureAIButtonModule(framework);
   configureTemplateDocModule(framework);
   configureBlobManagementModule(framework);
+  configureShareMenuModule(framework);
 }
