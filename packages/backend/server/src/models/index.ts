@@ -14,6 +14,7 @@ import { MODELS_SYMBOL } from './provider';
 import { SessionModel } from './session';
 import { UserModel } from './user';
 import { UserFeatureModel } from './user-feature';
+import { UserDocModel } from './user-doc';
 import { VerificationTokenModel } from './verification-token';
 import { WorkspaceModel } from './workspace';
 import { WorkspaceFeatureModel } from './workspace-feature';
@@ -28,6 +29,7 @@ const MODELS = {
   userFeature: UserFeatureModel,
   workspaceFeature: WorkspaceFeatureModel,
   doc: DocModel,
+  userDoc: UserDocModel,
 };
 
 type ModelsType = {
@@ -85,6 +87,7 @@ export * from './feature';
 export * from './page';
 export * from './session';
 export * from './user';
+export * from './user-doc';
 export * from './user-feature';
 export * from './verification-token';
 export * from './workspace';
