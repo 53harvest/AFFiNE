@@ -1,7 +1,8 @@
 import type { InlineEditProps } from '@affine/component';
 import { InlineEdit } from '@affine/component';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
-import { DocsService } from '@affine/core/modules/doc';
+import { DocService, DocsService } from '@affine/core/modules/doc';
+import { DocGuardService } from '@affine/core/modules/permissions';
 import { WorkspaceService } from '@affine/core/modules/workspace';
 import { track } from '@affine/track';
 import { useLiveData, useService } from '@toeverything/infra';
@@ -11,7 +12,6 @@ import type { HTMLAttributes } from 'react';
 import * as styles from './style.css';
 
 export interface BlockSuiteHeaderTitleProps {
-  docId: string;
   /** if set, title cannot be edited */
   inputHandleRef?: InlineEditProps['handleRef'];
   className?: string;
@@ -21,28 +21,30 @@ const inputAttrs = {
   'data-testid': 'title-content',
 } as HTMLAttributes<HTMLInputElement>;
 export const BlocksuiteHeaderTitle = (props: BlockSuiteHeaderTitleProps) => {
-  const { inputHandleRef, docId } = props;
+  const { inputHandleRef } = props;
   const workspaceService = useService(WorkspaceService);
   const isSharedMode = workspaceService.workspace.openOptions.isSharedMode;
   const docsService = useService(DocsService);
-
-  const docRecord = useLiveData(docsService.list.doc$(docId));
-  const docTitle = useLiveData(docRecord?.title$);
+  const docGuardService = useService(DocGuardService);
+  const docService = useService(DocService);
+  const docTitle = useLiveData(docService.doc.record.title$);
 
   const onChange = useAsyncCallback(
     async (v: string) => {
-      await docsService.changeDocTitle(docId, v);
+      await docsService.changeDocTitle(docService.doc.id, v);
       track.$.header.actions.renameDoc();
     },
-    [docId, docsService]
+    [docService.doc.id, docsService]
   );
+
+  const canEdit = useLiveData(docGuardService.can$(docService.doc.id, 'edit'));
 
   return (
     <InlineEdit
       className={clsx(styles.title, props.className)}
       value={docTitle}
       onChange={onChange}
-      editable={!isSharedMode}
+      editable={!isSharedMode && canEdit}
       exitible={true}
       placeholder="Untitled"
       data-testid="title-edit-button"

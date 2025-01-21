@@ -20,6 +20,7 @@ export type EditorProps = {
   page: Store;
   mode: DocMode;
   shared?: boolean;
+  readonly?: boolean;
   defaultOpenProperty?: DefaultOpenProperty;
   // on Editor ready
   onEditorReady?: (editor: AffineEditorContainer) => (() => void) | void;
@@ -32,6 +33,7 @@ const BlockSuiteEditorImpl = ({
   page,
   className,
   shared,
+  readonly,
   style,
   onEditorReady,
   defaultOpenProperty,
@@ -99,6 +101,7 @@ const BlockSuiteEditorImpl = ({
       mode={mode}
       page={page}
       shared={shared}
+      readonly={readonly}
       defaultOpenProperty={defaultOpenProperty}
       ref={editorRef}
       className={className}

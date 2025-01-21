@@ -14,6 +14,7 @@ import {
   CompatibleFavoriteItemsAdapter,
   FavoriteService,
 } from '@affine/core/modules/favorite';
+import { DocGuardService } from '@affine/core/modules/permissions';
 import { WorkbenchService } from '@affine/core/modules/workbench';
 import { WorkspaceService } from '@affine/core/modules/workspace';
 import type { Collection, DeleteCollectionInfo } from '@affine/env/filter';
@@ -67,12 +68,17 @@ export const PageOperationCell = ({
     workspaceService,
     compatibleFavoriteItemsAdapter: favAdapter,
     workbenchService,
+    docGuardService,
   } = useServices({
     WorkspaceService,
     CompatibleFavoriteItemsAdapter,
     WorkbenchService,
+    DocGuardService,
   });
 
+  const canMoveToTrash = useLiveData(
+    docGuardService.can$(page.id, 'move-to-trash')
+  );
   const currentWorkspace = workspaceService.workspace;
   const favourite = useLiveData(favAdapter.isFavorite$(page.id, 'doc'));
   const workbench = workbenchService.workbench;
@@ -199,7 +205,11 @@ export const PageOperationCell = ({
         {t['com.affine.header.option.duplicate']()}
       </MenuItem>
 
-      <MoveToTrash data-testid="move-to-trash" onSelect={onRemoveToTrash} />
+      <MoveToTrash
+        data-testid="move-to-trash"
+        onSelect={onRemoveToTrash}
+        disabled={!canMoveToTrash}
+      />
     </>
   );
   return (

@@ -1,5 +1,11 @@
-export class GuardStore {
-  constructor() {}
+import { Store } from '@toeverything/infra';
+
+export type WorkspacePermissions = string;
+
+export class GuardStore extends Store {
+  constructor() {
+    super();
+  }
 
   watchWorkspacePermissionsCache() {}
 
@@ -7,5 +13,9 @@ export class GuardStore {
     return {
       'workspace.user.read': true,
     };
+  }
+
+  async getWorkspacePermission(permission: string): Promise<boolean> {
+    return true;
   }
 }

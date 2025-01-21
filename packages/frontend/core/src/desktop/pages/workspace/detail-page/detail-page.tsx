@@ -12,6 +12,10 @@ import { EditorService } from '@affine/core/modules/editor';
 import { FeatureFlagService } from '@affine/core/modules/feature-flag';
 import { GlobalContextService } from '@affine/core/modules/global-context';
 import { PeekViewService } from '@affine/core/modules/peek-view';
+import {
+  DocGuardService,
+  GuardService,
+} from '@affine/core/modules/permissions';
 import { RecentDocsService } from '@affine/core/modules/quicksearch';
 import { ViewService } from '@affine/core/modules/workbench';
 import { WorkspaceService } from '@affine/core/modules/workspace';
@@ -72,6 +76,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
     workspaceService,
     globalContextService,
     featureFlagService,
+    docGuardService,
   } = useServices({
     WorkbenchService,
     ViewService,
@@ -80,6 +85,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
     WorkspaceService,
     GlobalContextService,
     FeatureFlagService,
+    DocGuardService,
   });
   const workbench = workbenchService.workbench;
   const editor = editorService.editor;
@@ -260,6 +266,8 @@ const DetailPageImpl = memo(function DetailPageImpl() {
 
   const [dragging, setDragging] = useState(false);
 
+  const canEdit = useLiveData(docGuardService.can$(doc.id, 'edit'));
+
   return (
     <FrameworkScope scope={editor.scope}>
       <ViewHeader>
@@ -289,7 +297,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
                   styles.editorContainer
                 )}
               >
-                <PageDetailEditor onLoad={onLoad} />
+                <PageDetailEditor onLoad={onLoad} readonly={!canEdit} />
               </Scrollable.Viewport>
               <Scrollable.Scrollbar
                 className={clsx({

@@ -1,11 +1,12 @@
 import { Checkbox, Tooltip, useDraggable } from '@affine/component';
+import { Doc, DocsService } from '@affine/core/modules/doc';
 import { TagService } from '@affine/core/modules/tag';
 import type { AffineDNDData } from '@affine/core/types/dnd';
 import { stopPropagation } from '@affine/core/utils';
 import { i18nTime } from '@affine/i18n';
-import { useLiveData, useService } from '@toeverything/infra';
+import { FrameworkScope, useLiveData, useService } from '@toeverything/infra';
 import type { ForwardedRef, PropsWithChildren } from 'react';
-import { forwardRef, useCallback, useEffect, useMemo } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { WorkbenchLink } from '../../../modules/workbench/view/workbench-link';
 import {
@@ -184,8 +185,23 @@ export const PageListItem = (props: PageListItemProps) => {
     [props.draggable, props.pageId, props.selectable]
   );
 
+  const docsService = useService(DocsService);
+  const [doc, setDoc] = useState<Doc | null>(null);
+
+  useEffect(() => {
+    const { doc, release } = docsService.open(props.pageId);
+    setDoc(doc);
+    return () => {
+      release();
+    };
+  }, [props.pageId, docsService.list, docsService]);
+
+  if (!doc) {
+    return null;
+  }
+
   return (
-    <>
+    <FrameworkScope scope={doc.scope}>
       <PageListItemWrapper
         onClick={props.onClick}
         to={props.to}
@@ -245,7 +261,7 @@ export const PageListItem = (props: PageListItemProps) => {
       <CustomDragPreview position="pointer-outside">
         {pageTitleElement}
       </CustomDragPreview>
-    </>
+    </FrameworkScope>
   );
 };
 

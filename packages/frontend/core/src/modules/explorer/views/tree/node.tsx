@@ -80,6 +80,7 @@ export interface BaseExplorerTreeNodeProps {
 
 interface WebExplorerTreeNodeProps extends BaseExplorerTreeNodeProps {
   renameable?: boolean;
+  disableRename?: boolean;
   onRename?: (newName: string) => void;
   defaultRenaming?: boolean;
 
@@ -130,6 +131,7 @@ export const ExplorerTreeNode = ({
   onRename,
   disabled,
   collapsed,
+  disableRename,
   extractEmojiAsIcon,
   setCollapsed,
   canDrop,
@@ -285,6 +287,7 @@ export const ExplorerTreeNode = ({
                     type={'default'}
                     prefixIcon={<EditIcon />}
                     onClick={() => setRenaming(true)}
+                    disabled={disableRename}
                   >
                     {t['com.affine.menu.rename']()}
                   </MenuItem>
@@ -293,7 +296,7 @@ export const ExplorerTreeNode = ({
             : null,
         ] as (NodeOperation | null)[]
       ).filter((t): t is NodeOperation => t !== null),
-    [renameable, t]
+    [renameable, t, disableRename]
   );
 
   const { menuOperations, inlineOperations } = useMemo(() => {

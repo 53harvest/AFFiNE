@@ -2,27 +2,30 @@ import {
   effect,
   exhaustMapWithTrailing,
   fromPromise,
-  type LiveData,
+  LiveData,
+  Service,
 } from '@toeverything/infra';
 import { groupBy, mergeMap } from 'rxjs';
 
 import type { GuardStore } from '../stores/guard';
 
-type Action = 'workspace.users.read';
+export class GuardService extends Service {
+  constructor(private readonly guardStore: GuardStore) {
+    super();
+  }
 
-export class GuardService {
-  constructor(private readonly guardStore: GuardStore) {}
+  can$(action: string): LiveData<boolean> {
+    return new LiveData(false);
+  }
 
-  can$(action: Action): LiveData<boolean> {}
-
-  revalidatePermission = effect(
-    groupBy((action: Action) => action),
-    mergeMap(action$ =>
-      action$.pipe(
-        exhaustMapWithTrailing(action =>
-          fromPromise(() => this.guardStore.getWorkspacePermissions()).pipe()
-        )
-      )
-    )
-  );
+  // revalidatePermission = effect(
+  //   groupBy((action: string) => action),
+  //   mergeMap(action$ =>
+  //     action$.pipe(
+  //       exhaustMapWithTrailing(action =>
+  //         fromPromise(() => this.guardStore.getWorkspacePermissions()).pipe()
+  //       )
+  //     )
+  //   )
+  // );
 }

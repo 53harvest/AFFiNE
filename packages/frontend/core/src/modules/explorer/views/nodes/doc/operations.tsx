@@ -11,6 +11,7 @@ import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hoo
 import { IsFavoriteIcon } from '@affine/core/components/pure/icons';
 import { DocsService } from '@affine/core/modules/doc';
 import { CompatibleFavoriteItemsAdapter } from '@affine/core/modules/favorite';
+import { DocGuardService } from '@affine/core/modules/permissions';
 import { WorkbenchService } from '@affine/core/modules/workbench';
 import { WorkspaceService } from '@affine/core/modules/workspace';
 import { useI18n } from '@affine/i18n';
@@ -24,7 +25,7 @@ import {
   PlusIcon,
   SplitViewIcon,
 } from '@blocksuite/icons/rc';
-import { useLiveData, useServices } from '@toeverything/infra';
+import { useLiveData, useService, useServices } from '@toeverything/infra';
 import { useCallback, useMemo } from 'react';
 
 import type { NodeOperation } from '../../tree/types';
@@ -49,6 +50,11 @@ export const useExplorerDocNodeOperations = (
     CompatibleFavoriteItemsAdapter,
   });
   const { openConfirmModal } = useConfirmModal();
+  const docGuardService = useService(DocGuardService);
+  const canMoveToTrash = useLiveData(
+    docGuardService.can$(docId, 'move-to-trash')
+  );
+  const canEdit = useLiveData(docGuardService.can$(docId, 'edit'));
 
   const docRecord = useLiveData(docsService.list.doc$(docId));
 
@@ -141,6 +147,7 @@ export const useExplorerDocNodeOperations = (
             icon={<PlusIcon />}
             tooltip={t['com.affine.rootAppSidebar.explorer.doc-add-tooltip']()}
             onClick={handleAddLinkedPage}
+            disabled={!canEdit}
           />
         ),
       },
@@ -161,6 +168,7 @@ export const useExplorerDocNodeOperations = (
           <MenuItem
             prefixIcon={<LinkedPageIcon />}
             onClick={handleAddLinkedPage}
+            disabled={!canEdit}
           >
             {t['com.affine.page-operation.add-linked-page']()}
           </MenuItem>
@@ -221,6 +229,7 @@ export const useExplorerDocNodeOperations = (
             type={'danger'}
             prefixIcon={<DeleteIcon />}
             onClick={handleMoveToTrash}
+            disabled={!canMoveToTrash}
           >
             {t['com.affine.moveToTrash.title']()}
           </MenuItem>
@@ -228,6 +237,8 @@ export const useExplorerDocNodeOperations = (
       },
     ],
     [
+      canEdit,
+      canMoveToTrash,
       favorite,
       handleAddLinkedPage,
       handleDuplicate,

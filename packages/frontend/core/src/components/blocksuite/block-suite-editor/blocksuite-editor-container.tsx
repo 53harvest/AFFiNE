@@ -26,6 +26,7 @@ interface BlocksuiteEditorContainerProps {
   page: Store;
   mode: DocMode;
   shared?: boolean;
+  readonly?: boolean;
   className?: string;
   defaultOpenProperty?: DefaultOpenProperty;
   style?: React.CSSProperties;
@@ -42,7 +43,7 @@ export const BlocksuiteEditorContainer = forwardRef<
   AffineEditorContainer,
   BlocksuiteEditorContainerProps
 >(function AffineEditorContainer(
-  { page, mode, className, style, shared, defaultOpenProperty },
+  { page, mode, className, style, shared, readonly, defaultOpenProperty },
   ref
 ) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -131,7 +132,7 @@ export const BlocksuiteEditorContainer = forwardRef<
   ]);
 
   const handleClickPageModeBlank = useCallback(() => {
-    if (shared || page.readonly) return;
+    if (shared || readonly || page.readonly) return;
     const std = affineEditorContainerProxy.host?.std;
     if (!std) {
       return;
@@ -152,7 +153,7 @@ export const BlocksuiteEditorContainer = forwardRef<
     }
 
     std.command.exec('appendParagraph' as never, {});
-  }, [affineEditorContainerProxy, page, shared]);
+  }, [affineEditorContainerProxy.host?.std, page, readonly, shared]);
 
   return (
     <div

@@ -17,6 +17,7 @@ import { useDetailPageHeaderResponsive } from '@affine/core/desktop/pages/worksp
 import { WorkspaceDialogService } from '@affine/core/modules/dialogs';
 import { EditorService } from '@affine/core/modules/editor';
 import { OpenInAppService } from '@affine/core/modules/open-in-app/services';
+import { DocGuardService } from '@affine/core/modules/permissions';
 import { WorkbenchService } from '@affine/core/modules/workbench';
 import { ViewService } from '@affine/core/modules/workbench/services/view';
 import { WorkspaceService } from '@affine/core/modules/workspace';
@@ -69,6 +70,7 @@ export const PageHeaderMenuButton = ({
   const confirmEnableCloud = useEnableCloud();
 
   const workspace = useService(WorkspaceService).workspace;
+  const docGuardService = useService(DocGuardService);
 
   const editorService = useService(EditorService);
   const isInTrash = useLiveData(
@@ -293,6 +295,11 @@ export const PageHeaderMenuButton = ({
     openInAppService?.showOpenInAppPage();
   }, [openInAppService]);
 
+  const canEdit = useLiveData(docGuardService.can$(pageId, 'edit'));
+  const canMoveToTrash = useLiveData(
+    docGuardService.can$(pageId, 'move-to-trash')
+  );
+
   const EditMenu = (
     <>
       {showResponsiveMenu ? ResponsiveMenuItems : null}
@@ -302,6 +309,7 @@ export const PageHeaderMenuButton = ({
           prefixIcon={<EditIcon />}
           data-testid="editor-option-menu-rename"
           onSelect={handleRename}
+          disabled={!canEdit}
         >
           {t['Rename']()}
         </MenuItem>
@@ -310,6 +318,7 @@ export const PageHeaderMenuButton = ({
         prefixIcon={primaryMode === 'page' ? <EdgelessIcon /> : <PageIcon />}
         data-testid="editor-option-menu-edgeless"
         onSelect={handleSwitchMode}
+        disabled={!canEdit}
       >
         {primaryMode === 'page'
           ? t['com.affine.editorDefaultMode.edgeless']()
@@ -396,6 +405,7 @@ export const PageHeaderMenuButton = ({
       <MoveToTrash
         data-testid="editor-option-menu-delete"
         onSelect={handleOpenTrashModal}
+        disabled={!canMoveToTrash}
       />
       {BUILD_CONFIG.isWeb && workspace.flavour === 'affine-cloud' ? (
         <MenuItem
