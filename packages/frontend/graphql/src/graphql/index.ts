@@ -206,17 +206,6 @@ mutation createCopilotSession($options: CreateChatSessionInput!) {
 }`,
 };
 
-export const updateCopilotSessionMutation = {
-  id: 'updateCopilotSessionMutation' as const,
-  operationName: 'updateCopilotSession',
-  definitionName: 'updateCopilotSession',
-  containsFile: false,
-  query: `
-mutation updateCopilotSession($options: UpdateChatSessionInput!) {
-  updateCopilotSession(options: $options)
-}`,
-};
-
 export const createCustomerPortalMutation = {
   id: 'createCustomerPortalMutation' as const,
   operationName: 'createCustomerPortal',
@@ -1143,6 +1132,17 @@ mutation updateAccount($id: String!, $input: ManageUserInput!) {
 }`,
 };
 
+export const updateCopilotSessionMutation = {
+  id: 'updateCopilotSessionMutation' as const,
+  operationName: 'updateCopilotSession',
+  definitionName: 'updateCopilotSession',
+  containsFile: false,
+  query: `
+mutation updateCopilotSession($options: UpdateChatSessionInput!) {
+  updateCopilotSession(options: $options)
+}`,
+};
+
 export const updatePromptMutation = {
   id: 'updatePromptMutation' as const,
   operationName: 'updatePrompt',
@@ -1341,26 +1341,6 @@ mutation addWorkspaceFeature($workspaceId: String!, $feature: FeatureType!) {
 }`,
 };
 
-export const listWorkspaceFeaturesQuery = {
-  id: 'listWorkspaceFeaturesQuery' as const,
-  operationName: 'listWorkspaceFeatures',
-  definitionName: 'listWorkspaceFeatures',
-  containsFile: false,
-  query: `
-query listWorkspaceFeatures($feature: FeatureType!) {
-  listWorkspaceFeatures(feature: $feature) {
-    id
-    public
-    createdAt
-    memberCount
-    owner {
-      id
-    }
-    features
-  }
-}`,
-};
-
 export const removeWorkspaceFeatureMutation = {
   id: 'removeWorkspaceFeatureMutation' as const,
   operationName: 'removeWorkspaceFeature',
@@ -1511,6 +1491,33 @@ query workspaceQuota($id: String!) {
         memberLimit
       }
       usedSize
+    }
+  }
+}`,
+};
+
+export const getWorkspaceRulePermissionsQuery = {
+  id: 'getWorkspaceRulePermissionsQuery' as const,
+  operationName: 'getWorkspaceRulePermissions',
+  definitionName: 'workspaceRolePermissions',
+  containsFile: false,
+  query: `
+query getWorkspaceRulePermissions($id: String!) {
+  workspaceRolePermissions(id: $id) {
+    permissions {
+      Workspace_CreateDoc
+      Workspace_Delete
+      Workspace_Organize_Read
+      Workspace_Properties_Create
+      Workspace_Properties_Delete
+      Workspace_Properties_Read
+      Workspace_Properties_Update
+      Workspace_Settings_Read
+      Workspace_Settings_Update
+      Workspace_Sync
+      Workspace_TransferOwner
+      Workspace_Users_Manage
+      Workspace_Users_Read
     }
   }
 }`,
