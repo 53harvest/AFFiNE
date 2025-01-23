@@ -5,6 +5,7 @@ import type { Store } from '@blocksuite/affine/store';
 import { useService } from '@toeverything/infra';
 import { useCallback } from 'react';
 
+import { MemberSearchService } from '../../permissions';
 import { ShareMenuService, ShareMenuTab } from '../services/share-menu';
 import { ShareMenu } from './share-menu';
 export { CloudSvg } from './cloud-svg';
@@ -18,15 +19,17 @@ type SharePageModalProps = {
 export const SharePageButton = ({ workspace, page }: SharePageModalProps) => {
   const confirmEnableCloud = useEnableCloud();
   const shareMenuService = useService(ShareMenuService);
+  const memberSearchService = useService(MemberSearchService);
   const handleOpenShareModal = useCallback(
     (open: boolean) => {
       if (open) {
         track.$.sharePanel.$.open();
-        shareMenuService.setQuery('');
+        shareMenuService.clear();
+        memberSearchService.clear();
         shareMenuService.switchTab(ShareMenuTab.Share);
       }
     },
-    [shareMenuService]
+    [memberSearchService, shareMenuService]
   );
 
   return (

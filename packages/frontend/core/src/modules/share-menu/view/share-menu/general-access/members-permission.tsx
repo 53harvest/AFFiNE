@@ -1,26 +1,18 @@
 import { Menu, MenuItem, MenuTrigger } from '@affine/component';
+import { DocRole } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import { useCallback, useMemo, useState } from 'react';
 
 import { PlanTag } from '../plan-tag';
 import * as styles from './styles.css';
 
-enum MockDocPermission {
-  Edit = 'edit',
-  Read = 'read',
-  Manage = 'manage',
-}
-
-const getRoleName = (
-  role: MockDocPermission,
-  t: ReturnType<typeof useI18n>
-) => {
+const getRoleName = (role: DocRole, t: ReturnType<typeof useI18n>) => {
   switch (role) {
-    case MockDocPermission.Manage:
+    case DocRole.Manager:
       return t['com.affine.share-menu.option.permission.can-manage']();
-    case MockDocPermission.Edit:
+    case DocRole.Editor:
       return t['com.affine.share-menu.option.permission.can-edit']();
-    case MockDocPermission.Read:
+    case DocRole.Reader:
       return t['com.affine.share-menu.option.permission.can-read']();
     default:
       return '';
@@ -35,20 +27,15 @@ export const MembersPermission = ({
   openPaywallModal?: () => void;
 }) => {
   const t = useI18n();
-  const [permission, setPermission] = useState<MockDocPermission>(
-    MockDocPermission.Manage
-  );
-  const currentRoleName = useMemo(
-    () => getRoleName(permission, t),
-    [permission, t]
-  );
+  const [docRole, setDocRole] = useState<DocRole>(DocRole.Manager);
+  const currentRoleName = useMemo(() => getRoleName(docRole, t), [docRole, t]);
 
-  const changePermission = useCallback((newPermission: MockDocPermission) => {
-    setPermission(newPermission);
+  const changePermission = useCallback((newPermission: DocRole) => {
+    setDocRole(newPermission);
   }, []);
 
   const selectManage = useCallback(() => {
-    changePermission(MockDocPermission.Manage);
+    changePermission(DocRole.Manager);
   }, [changePermission]);
 
   const selectEdit = useCallback(() => {
@@ -56,7 +43,7 @@ export const MembersPermission = ({
       openPaywallModal?.();
       return;
     }
-    changePermission(MockDocPermission.Edit);
+    changePermission(DocRole.Editor);
   }, [changePermission, hittingPaywall, openPaywallModal]);
 
   const selectRead = useCallback(() => {
@@ -64,7 +51,7 @@ export const MembersPermission = ({
       openPaywallModal?.();
       return;
     }
-    changePermission(MockDocPermission.Read);
+    changePermission(DocRole.Reader);
   }, [changePermission, hittingPaywall, openPaywallModal]);
   return (
     <div className={styles.rowContainerStyle}>
@@ -79,7 +66,7 @@ export const MembersPermission = ({
           <>
             <MenuItem
               onSelect={selectManage}
-              selected={permission === MockDocPermission.Manage}
+              selected={docRole === DocRole.Manager}
             >
               <div className={styles.publicItemRowStyle}>
                 {t['com.affine.share-menu.option.permission.can-manage']()}
@@ -87,7 +74,7 @@ export const MembersPermission = ({
             </MenuItem>
             <MenuItem
               onSelect={selectEdit}
-              selected={permission === MockDocPermission.Edit}
+              selected={docRole === DocRole.Editor}
             >
               <div className={styles.publicItemRowStyle}>
                 <div className={styles.tagContainerStyle}>
@@ -98,7 +85,7 @@ export const MembersPermission = ({
             </MenuItem>
             <MenuItem
               onSelect={selectRead}
-              selected={permission === MockDocPermission.Read}
+              selected={docRole === DocRole.Reader}
             >
               <div className={styles.publicItemRowStyle}>
                 <div className={styles.tagContainerStyle}>
