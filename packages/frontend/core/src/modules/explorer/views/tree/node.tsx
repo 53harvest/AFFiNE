@@ -10,7 +10,9 @@ import {
   useDropTarget,
 } from '@affine/component';
 import { RenameModal } from '@affine/component/rename-modal';
+import { DocPermissionGuard } from '@affine/core/components/guard/doc-guard';
 import { AppSidebarService } from '@affine/core/modules/app-sidebar';
+import type { DocPermissionActions } from '@affine/core/modules/permissions';
 import { WorkbenchLink } from '@affine/core/modules/workbench';
 import type { AffineDNDData } from '@affine/core/types/dnd';
 import { extractEmojiIcon } from '@affine/core/utils';
@@ -80,8 +82,8 @@ export interface BaseExplorerTreeNodeProps {
 
 interface WebExplorerTreeNodeProps extends BaseExplorerTreeNodeProps {
   renameable?: boolean;
-  disableRename?: boolean;
   onRename?: (newName: string) => void;
+  renameableGuard?: { docId: string; action: DocPermissionActions };
   defaultRenaming?: boolean;
 
   canDrop?: DropTargetOptions<AffineDNDData>['canDrop'];
@@ -128,10 +130,10 @@ export const ExplorerTreeNode = ({
   active,
   defaultRenaming,
   renameable,
+  renameableGuard,
   onRename,
   disabled,
   collapsed,
-  disableRename,
   extractEmojiAsIcon,
   setCollapsed,
   canDrop,
@@ -281,13 +283,29 @@ export const ExplorerTreeNode = ({
           renameable
             ? {
                 index: 0,
-                view: (
+                view: renameableGuard ? (
+                  <DocPermissionGuard
+                    permission={renameableGuard.action}
+                    docId={renameableGuard.docId}
+                  >
+                    {can => (
+                      <MenuItem
+                        key={'explorer-tree-rename'}
+                        type={'default'}
+                        prefixIcon={<EditIcon />}
+                        onClick={() => setRenaming(true)}
+                        disabled={!can}
+                      >
+                        {t['com.affine.menu.rename']()}
+                      </MenuItem>
+                    )}
+                  </DocPermissionGuard>
+                ) : (
                   <MenuItem
                     key={'explorer-tree-rename'}
                     type={'default'}
                     prefixIcon={<EditIcon />}
                     onClick={() => setRenaming(true)}
-                    disabled={disableRename}
                   >
                     {t['com.affine.menu.rename']()}
                   </MenuItem>
@@ -296,7 +314,7 @@ export const ExplorerTreeNode = ({
             : null,
         ] as (NodeOperation | null)[]
       ).filter((t): t is NodeOperation => t !== null),
-    [renameable, t, disableRename]
+    [renameable, t]
   );
 
   const { menuOperations, inlineOperations } = useMemo(() => {

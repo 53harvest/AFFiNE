@@ -14,7 +14,7 @@ import {
   CompatibleFavoriteItemsAdapter,
   FavoriteService,
 } from '@affine/core/modules/favorite';
-import { DocGuardService } from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { WorkbenchService } from '@affine/core/modules/workbench';
 import { WorkspaceService } from '@affine/core/modules/workspace';
 import type { Collection, DeleteCollectionInfo } from '@affine/env/filter';
@@ -58,7 +58,7 @@ export interface PageOperationCellProps {
   onRemoveFromAllowList?: () => void;
 }
 
-export const PageOperationCell = ({
+const PageOperationCellMenuItem = ({
   isInAllowList,
   page,
   onRemoveFromAllowList,
@@ -68,17 +68,15 @@ export const PageOperationCell = ({
     workspaceService,
     compatibleFavoriteItemsAdapter: favAdapter,
     workbenchService,
-    docGuardService,
+    guardService,
   } = useServices({
     WorkspaceService,
     CompatibleFavoriteItemsAdapter,
     WorkbenchService,
-    DocGuardService,
+    GuardService,
   });
 
-  const canMoveToTrash = useLiveData(
-    docGuardService.can$(page.id, 'move-to-trash')
-  );
+  const canMoveToTrash = useLiveData(guardService.can$('Doc_Trash', page.id));
   const currentWorkspace = workspaceService.workspace;
   const favourite = useLiveData(favAdapter.isFavorite$(page.id, 'doc'));
   const workbench = workbenchService.workbench;
@@ -165,7 +163,7 @@ export const PageOperationCell = ({
     }
   }, [onRemoveFromAllowList]);
 
-  const OperationMenu = (
+  return (
     <>
       {page.isPublic && (
         <DisablePublicSharing
@@ -212,6 +210,29 @@ export const PageOperationCell = ({
       />
     </>
   );
+};
+
+export const PageOperationCell = ({
+  isInAllowList,
+  page,
+  onRemoveFromAllowList,
+}: PageOperationCellProps) => {
+  const t = useI18n();
+  const { compatibleFavoriteItemsAdapter: favAdapter } = useServices({
+    CompatibleFavoriteItemsAdapter,
+  });
+
+  const favourite = useLiveData(favAdapter.isFavorite$(page.id, 'doc'));
+
+  const onToggleFavoritePage = useCallback(() => {
+    const status = favAdapter.isFavorite(page.id, 'doc');
+    favAdapter.toggle(page.id, 'doc');
+    toast(
+      status
+        ? t['com.affine.toastMessage.removedFavorites']()
+        : t['com.affine.toastMessage.addedFavorites']()
+    );
+  }, [page.id, favAdapter, t]);
   return (
     <>
       <ColWrapper
@@ -224,7 +245,13 @@ export const PageOperationCell = ({
       </ColWrapper>
       <ColWrapper alignment="start">
         <Menu
-          items={OperationMenu}
+          items={
+            <PageOperationCellMenuItem
+              page={page}
+              isInAllowList={isInAllowList}
+              onRemoveFromAllowList={onRemoveFromAllowList}
+            />
+          }
           contentOptions={{
             align: 'end',
           }}

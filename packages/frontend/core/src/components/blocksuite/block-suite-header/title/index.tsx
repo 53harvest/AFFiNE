@@ -2,7 +2,7 @@ import type { InlineEditProps } from '@affine/component';
 import { InlineEdit } from '@affine/component';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
 import { DocService, DocsService } from '@affine/core/modules/doc';
-import { DocGuardService } from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { WorkspaceService } from '@affine/core/modules/workspace';
 import { track } from '@affine/track';
 import { useLiveData, useService } from '@toeverything/infra';
@@ -25,7 +25,7 @@ export const BlocksuiteHeaderTitle = (props: BlockSuiteHeaderTitleProps) => {
   const workspaceService = useService(WorkspaceService);
   const isSharedMode = workspaceService.workspace.openOptions.isSharedMode;
   const docsService = useService(DocsService);
-  const docGuardService = useService(DocGuardService);
+  const guardService = useService(GuardService);
   const docService = useService(DocService);
   const docTitle = useLiveData(docService.doc.record.title$);
 
@@ -37,7 +37,9 @@ export const BlocksuiteHeaderTitle = (props: BlockSuiteHeaderTitleProps) => {
     [docService.doc.id, docsService]
   );
 
-  const canEdit = useLiveData(docGuardService.can$(docService.doc.id, 'edit'));
+  const canEdit = useLiveData(
+    guardService.can$('Doc_Update', docService.doc.id)
+  );
 
   return (
     <InlineEdit

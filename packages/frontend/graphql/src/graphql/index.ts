@@ -282,6 +282,35 @@ mutation deleteWorkspace($id: String!) {
 }`,
 };
 
+export const getDocRolePermissionsQuery = {
+  id: 'getDocRolePermissionsQuery' as const,
+  operationName: 'getDocRolePermissions',
+  definitionName: 'workspace',
+  containsFile: false,
+  query: `
+query getDocRolePermissions($workspaceId: String!, $docId: String!) {
+  workspace(id: $workspaceId) {
+    currentUserPermission(pageId: $docId) {
+      permissions {
+        Doc_Copy
+        Doc_Delete
+        Doc_Duplicate
+        Doc_Properties_Read
+        Doc_Properties_Update
+        Doc_Publish
+        Doc_Read
+        Doc_Restore
+        Doc_TransferOwner
+        Doc_Trash
+        Doc_Update
+        Doc_Users_Manage
+        Doc_Users_Read
+      }
+    }
+  }
+}`,
+};
+
 export const forkCopilotSessionMutation = {
   id: 'forkCopilotSessionMutation' as const,
   operationName: 'forkCopilotSession',
@@ -1496,13 +1525,13 @@ query workspaceQuota($id: String!) {
 }`,
 };
 
-export const getWorkspaceRulePermissionsQuery = {
-  id: 'getWorkspaceRulePermissionsQuery' as const,
-  operationName: 'getWorkspaceRulePermissions',
+export const getWorkspaceRolePermissionsQuery = {
+  id: 'getWorkspaceRolePermissionsQuery' as const,
+  operationName: 'getWorkspaceRolePermissions',
   definitionName: 'workspaceRolePermissions',
   containsFile: false,
   query: `
-query getWorkspaceRulePermissions($id: String!) {
+query getWorkspaceRolePermissions($id: String!) {
   workspaceRolePermissions(id: $id) {
     permissions {
       Workspace_CreateDoc

@@ -16,7 +16,7 @@ import type {
   DatabaseValueCell,
 } from '@affine/core/modules/doc-info/types';
 import { FeatureFlagService } from '@affine/core/modules/feature-flag';
-import { DocGuardService } from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { ViewService, WorkbenchService } from '@affine/core/modules/workbench';
 import type { AffineDNDData } from '@affine/core/types/dnd';
 import { useI18n } from '@affine/i18n';
@@ -295,15 +295,18 @@ const DocWorkspacePropertiesTableBody = forwardRef<
     const docsService = useService(DocsService);
     const workbenchService = useService(WorkbenchService);
     const viewService = useServiceOptional(ViewService);
-    const docGuardService = useService(DocGuardService);
+    const docService = useService(DocService);
+    const guardService = useService(GuardService);
     const properties = useLiveData(docsService.propertyList.sortedProperties$);
     const [addMoreCollapsed, setAddMoreCollapsed] = useState(true);
 
     const [newPropertyId, setNewPropertyId] = useState<string | null>(null);
 
-    const canEditProperty = useLiveData(docGuardService.can$('edit-property'));
+    const canEditProperty = useLiveData(
+      guardService.can$('Doc_Update', docService.doc.id)
+    );
     const canEditPropertyInfo = useLiveData(
-      docGuardService.can$('edit-property-info')
+      guardService.can$('Workspace_Properties_Update')
     );
 
     const handlePropertyAdded = useCallback(

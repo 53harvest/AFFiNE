@@ -16,10 +16,7 @@ import type {
   DatabaseValueCell,
 } from '@affine/core/modules/doc-info/types';
 import { DocsSearchService } from '@affine/core/modules/docs-search';
-import {
-  DocGuardService,
-  GuardService,
-} from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { useI18n } from '@affine/i18n';
 import track from '@affine/track';
 import { PlusIcon } from '@blocksuite/icons/rc';
@@ -37,19 +34,15 @@ export const InfoTable = ({
   onClose: () => void;
 }) => {
   const t = useI18n();
-  const { docsSearchService, docsService, docGuardService, guardService } =
-    useServices({
-      DocsSearchService,
-      DocsService,
-      DocGuardService,
-      GuardService,
-    });
+  const { docsSearchService, docsService, guardService } = useServices({
+    DocsSearchService,
+    DocsService,
+    GuardService,
+  });
   const canEditPropertyInfo = useLiveData(
-    guardService.can$('edit-property-info')
+    guardService.can$('Workspace_Properties_Update')
   );
-  const canEditProperty = useLiveData(
-    docGuardService.can$(docId, 'edit-property')
-  );
+  const canEditProperty = useLiveData(guardService.can$('Doc_Update', docId));
   const [newPropertyId, setNewPropertyId] = useState<string | null>(null);
   const properties = useLiveData(docsService.propertyList.sortedProperties$);
   const links = useLiveData(

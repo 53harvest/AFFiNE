@@ -33,7 +33,7 @@ export const DocPropertySidebar = () => {
   const propertyList = docsService.propertyList;
   const properties = useLiveData(propertyList.properties$);
   const canEditPropertyInfo = useLiveData(
-    guardService.can$('edit-property-info')
+    guardService.can$('Workspace_Properties_Update')
   );
   const onAddProperty = useCallback(
     (option: { type: string; name: string }) => {

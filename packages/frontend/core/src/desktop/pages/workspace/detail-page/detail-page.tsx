@@ -12,10 +12,7 @@ import { EditorService } from '@affine/core/modules/editor';
 import { FeatureFlagService } from '@affine/core/modules/feature-flag';
 import { GlobalContextService } from '@affine/core/modules/global-context';
 import { PeekViewService } from '@affine/core/modules/peek-view';
-import {
-  DocGuardService,
-  GuardService,
-} from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { RecentDocsService } from '@affine/core/modules/quicksearch';
 import { ViewService } from '@affine/core/modules/workbench';
 import { WorkspaceService } from '@affine/core/modules/workspace';
@@ -76,7 +73,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
     workspaceService,
     globalContextService,
     featureFlagService,
-    docGuardService,
+    guardService,
   } = useServices({
     WorkbenchService,
     ViewService,
@@ -85,7 +82,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
     WorkspaceService,
     GlobalContextService,
     FeatureFlagService,
-    DocGuardService,
+    GuardService,
   });
   const workbench = workbenchService.workbench;
   const editor = editorService.editor;
@@ -266,7 +263,7 @@ const DetailPageImpl = memo(function DetailPageImpl() {
 
   const [dragging, setDragging] = useState(false);
 
-  const canEdit = useLiveData(docGuardService.can$(doc.id, 'edit'));
+  const canEdit = useLiveData(guardService.can$('Doc_Update', doc.id));
 
   return (
     <FrameworkScope scope={editor.scope}>

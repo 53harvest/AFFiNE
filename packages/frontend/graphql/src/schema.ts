@@ -1840,6 +1840,37 @@ export type DeleteWorkspaceMutation = {
   deleteWorkspace: boolean;
 };
 
+export type GetDocRolePermissionsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+}>;
+
+export type GetDocRolePermissionsQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    currentUserPermission: {
+      __typename?: 'DocType';
+      permissions: {
+        __typename?: 'RolePermissions';
+        Doc_Copy: boolean;
+        Doc_Delete: boolean;
+        Doc_Duplicate: boolean;
+        Doc_Properties_Read: boolean;
+        Doc_Properties_Update: boolean;
+        Doc_Publish: boolean;
+        Doc_Read: boolean;
+        Doc_Restore: boolean;
+        Doc_TransferOwner: boolean;
+        Doc_Trash: boolean;
+        Doc_Update: boolean;
+        Doc_Users_Manage: boolean;
+        Doc_Users_Read: boolean;
+      };
+    };
+  };
+};
+
 export type ForkCopilotSessionMutationVariables = Exact<{
   options: ForkChatSessionInput;
 }>;
@@ -2952,11 +2983,11 @@ export type WorkspaceQuotaQuery = {
   };
 };
 
-export type GetWorkspaceRulePermissionsQueryVariables = Exact<{
+export type GetWorkspaceRolePermissionsQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
 
-export type GetWorkspaceRulePermissionsQuery = {
+export type GetWorkspaceRolePermissionsQuery = {
   __typename?: 'Query';
   workspaceRolePermissions: {
     __typename?: 'WorkspaceRolePermissions';
@@ -3015,6 +3046,11 @@ export type Queries =
       name: 'copilotQuotaQuery';
       variables: CopilotQuotaQueryVariables;
       response: CopilotQuotaQuery;
+    }
+  | {
+      name: 'getDocRolePermissionsQuery';
+      variables: GetDocRolePermissionsQueryVariables;
+      response: GetDocRolePermissionsQuery;
     }
   | {
       name: 'getCopilotHistoriesQuery';
@@ -3217,9 +3253,9 @@ export type Queries =
       response: WorkspaceQuotaQuery;
     }
   | {
-      name: 'getWorkspaceRulePermissionsQuery';
-      variables: GetWorkspaceRulePermissionsQueryVariables;
-      response: GetWorkspaceRulePermissionsQuery;
+      name: 'getWorkspaceRolePermissionsQuery';
+      variables: GetWorkspaceRolePermissionsQueryVariables;
+      response: GetWorkspaceRolePermissionsQuery;
     };
 
 export type Mutations =

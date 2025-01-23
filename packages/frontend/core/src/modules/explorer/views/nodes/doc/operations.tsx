@@ -6,12 +6,13 @@ import {
   useConfirmModal,
 } from '@affine/component';
 import { usePageHelper } from '@affine/core/components/blocksuite/block-suite-page-list/utils';
+import { DocPermissionGuard } from '@affine/core/components/guard/doc-guard';
 import { useBlockSuiteMetaHelper } from '@affine/core/components/hooks/affine/use-block-suite-meta-helper';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
 import { IsFavoriteIcon } from '@affine/core/components/pure/icons';
 import { DocsService } from '@affine/core/modules/doc';
 import { CompatibleFavoriteItemsAdapter } from '@affine/core/modules/favorite';
-import { DocGuardService } from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { WorkbenchService } from '@affine/core/modules/workbench';
 import { WorkspaceService } from '@affine/core/modules/workspace';
 import { useI18n } from '@affine/i18n';
@@ -25,7 +26,7 @@ import {
   PlusIcon,
   SplitViewIcon,
 } from '@blocksuite/icons/rc';
-import { useLiveData, useService, useServices } from '@toeverything/infra';
+import { useLiveData, useServices } from '@toeverything/infra';
 import { useCallback, useMemo } from 'react';
 
 import type { NodeOperation } from '../../tree/types';
@@ -43,18 +44,15 @@ export const useExplorerDocNodeOperations = (
     workspaceService,
     docsService,
     compatibleFavoriteItemsAdapter,
+    guardService,
   } = useServices({
     DocsService,
     WorkbenchService,
     WorkspaceService,
     CompatibleFavoriteItemsAdapter,
+    GuardService,
   });
   const { openConfirmModal } = useConfirmModal();
-  const docGuardService = useService(DocGuardService);
-  const canMoveToTrash = useLiveData(
-    docGuardService.can$(docId, 'move-to-trash')
-  );
-  const canEdit = useLiveData(docGuardService.can$(docId, 'edit'));
 
   const docRecord = useLiveData(docsService.list.doc$(docId));
 
@@ -121,13 +119,18 @@ export const useExplorerDocNodeOperations = (
   }, [docId, workbenchService.workbench]);
 
   const handleAddLinkedPage = useAsyncCallback(async () => {
+    const canEdit = await guardService.can('Doc_Update', docId);
+    if (!canEdit) {
+      toast(t['com.affine.no-permission']());
+      return;
+    }
     const newDoc = createPage();
     // TODO: handle timeout & error
     await docsService.addLinkedDoc(docId, newDoc.id);
     track.$.navigationPanel.docs.createDoc({ control: 'linkDoc' });
     track.$.navigationPanel.docs.linkDoc({ control: 'createDoc' });
     options.openNodeCollapsed();
-  }, [createPage, docsService, docId, options]);
+  }, [createPage, guardService, docId, docsService, options, t]);
 
   const handleToggleFavoriteDoc = useCallback(() => {
     compatibleFavoriteItemsAdapter.toggle(docId, 'doc');
@@ -147,7 +150,6 @@ export const useExplorerDocNodeOperations = (
             icon={<PlusIcon />}
             tooltip={t['com.affine.rootAppSidebar.explorer.doc-add-tooltip']()}
             onClick={handleAddLinkedPage}
-            disabled={!canEdit}
           />
         ),
       },
@@ -165,13 +167,17 @@ export const useExplorerDocNodeOperations = (
       {
         index: 99,
         view: (
-          <MenuItem
-            prefixIcon={<LinkedPageIcon />}
-            onClick={handleAddLinkedPage}
-            disabled={!canEdit}
-          >
-            {t['com.affine.page-operation.add-linked-page']()}
-          </MenuItem>
+          <DocPermissionGuard docId={docId} permission="Doc_Update">
+            {canEdit => (
+              <MenuItem
+                prefixIcon={<LinkedPageIcon />}
+                onClick={handleAddLinkedPage}
+                disabled={!canEdit}
+              >
+                {t['com.affine.page-operation.add-linked-page']()}
+              </MenuItem>
+            )}
+          </DocPermissionGuard>
         ),
       },
       {
@@ -225,20 +231,23 @@ export const useExplorerDocNodeOperations = (
       {
         index: 10000,
         view: (
-          <MenuItem
-            type={'danger'}
-            prefixIcon={<DeleteIcon />}
-            onClick={handleMoveToTrash}
-            disabled={!canMoveToTrash}
-          >
-            {t['com.affine.moveToTrash.title']()}
-          </MenuItem>
+          <DocPermissionGuard docId={docId} permission="Doc_Trash">
+            {canMoveToTrash => (
+              <MenuItem
+                type={'danger'}
+                prefixIcon={<DeleteIcon />}
+                onClick={handleMoveToTrash}
+                disabled={!canMoveToTrash}
+              >
+                {t['com.affine.moveToTrash.title']()}
+              </MenuItem>
+            )}
+          </DocPermissionGuard>
         ),
       },
     ],
     [
-      canEdit,
-      canMoveToTrash,
+      docId,
       favorite,
       handleAddLinkedPage,
       handleDuplicate,

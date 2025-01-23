@@ -43,7 +43,7 @@ const PropertyItem = ({
   const docsService = useService(DocsService);
   const [moreMenuOpen, setMoreMenuOpen] = useState(defaultOpenEditMenu);
   const canEditPropertyInfo = useLiveData(
-    guardService.can$('edit-property-info')
+    guardService.can$('Workspace_Properties_Update')
   );
 
   const typeInfo = isSupportedDocPropertyType(propertyInfo.type)

@@ -1,4 +1,4 @@
-query getWorkspaceRulePermissions($id: String!) {
+query getWorkspaceRolePermissions($id: String!) {
   workspaceRolePermissions(id: $id) {
     permissions {
       Workspace_CreateDoc

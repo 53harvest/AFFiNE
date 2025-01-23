@@ -172,6 +172,7 @@ export const BlocksuiteEditorContainer = forwardRef<
           shared={shared}
           page={page}
           ref={docRef}
+          readonly={readonly}
           titleRef={docTitleRef}
           onClickBlank={handleClickPageModeBlank}
           defaultOpenProperty={defaultOpenProperty}

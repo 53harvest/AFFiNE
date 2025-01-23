@@ -17,7 +17,7 @@ import { useDetailPageHeaderResponsive } from '@affine/core/desktop/pages/worksp
 import { WorkspaceDialogService } from '@affine/core/modules/dialogs';
 import { EditorService } from '@affine/core/modules/editor';
 import { OpenInAppService } from '@affine/core/modules/open-in-app/services';
-import { DocGuardService } from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { WorkbenchService } from '@affine/core/modules/workbench';
 import { ViewService } from '@affine/core/modules/workbench/services/view';
 import { WorkspaceService } from '@affine/core/modules/workspace';
@@ -57,25 +57,95 @@ type PageMenuProps = {
   isJournal?: boolean;
   containerWidth: number;
 };
-// fixme: refactor this file
+
 export const PageHeaderMenuButton = ({
   rename,
   page,
   isJournal,
   containerWidth,
 }: PageMenuProps) => {
+  const workspace = useService(WorkspaceService).workspace;
+  const editorService = useService(EditorService);
+  const isInTrash = useLiveData(
+    editorService.editor.doc.meta$.map(meta => meta.trash)
+  );
+
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [openHistoryTipsModal, setOpenHistoryTipsModal] = useState(false);
+
+  const handleMenuOpenChange = useCallback((open: boolean) => {
+    if (open) {
+      track.$.header.docOptions.open();
+    }
+  }, []);
+
+  const openHistoryModal = useCallback(() => {
+    track.$.header.history.open();
+    if (workspace.flavour === 'affine-cloud') {
+      return setHistoryModalOpen(true);
+    }
+    return setOpenHistoryTipsModal(true);
+  }, [setOpenHistoryTipsModal, workspace.flavour]);
+
+  if (isInTrash) {
+    return null;
+  }
+
+  return (
+    <>
+      <Menu
+        items={
+          <PageHeaderMenuItem
+            page={page}
+            containerWidth={containerWidth}
+            rename={rename}
+            isJournal={isJournal}
+            openHistoryModal={openHistoryModal}
+          />
+        }
+        contentOptions={{
+          align: 'center',
+        }}
+        rootOptions={{
+          onOpenChange: handleMenuOpenChange,
+        }}
+      >
+        <HeaderDropDownButton />
+      </Menu>
+      {workspace.flavour !== 'local' ? (
+        <PageHistoryModal
+          docCollection={workspace.docCollection}
+          open={historyModalOpen}
+          pageId={page.id}
+          onOpenChange={setHistoryModalOpen}
+        />
+      ) : null}
+      <HistoryTipsModal
+        open={openHistoryTipsModal}
+        setOpen={setOpenHistoryTipsModal}
+      />
+    </>
+  );
+};
+
+// fixme: refactor this file
+const PageHeaderMenuItem = ({
+  rename,
+  page,
+  isJournal,
+  containerWidth,
+  openHistoryModal,
+}: PageMenuProps & {
+  openHistoryModal: () => void;
+}) => {
   const pageId = page?.id;
   const t = useI18n();
   const { hideShare } = useDetailPageHeaderResponsive(containerWidth);
   const confirmEnableCloud = useEnableCloud();
 
   const workspace = useService(WorkspaceService).workspace;
-  const docGuardService = useService(DocGuardService);
-
+  const guardService = useService(GuardService);
   const editorService = useService(EditorService);
-  const isInTrash = useLiveData(
-    editorService.editor.doc.meta$.map(meta => meta.trash)
-  );
   const currentMode = useLiveData(editorService.editor.mode$);
   const primaryMode = useLiveData(editorService.editor.doc.primaryMode$);
 
@@ -106,17 +176,6 @@ export const PageHeaderMenuButton = ({
   const openOutlinePanel = useCallback(() => {
     openSidePanel('outline');
   }, [openSidePanel]);
-
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [openHistoryTipsModal, setOpenHistoryTipsModal] = useState(false);
-
-  const openHistoryModal = useCallback(() => {
-    track.$.header.history.open();
-    if (workspace.flavour === 'affine-cloud') {
-      return setHistoryModalOpen(true);
-    }
-    return setOpenHistoryTipsModal(true);
-  }, [setOpenHistoryTipsModal, workspace.flavour]);
 
   const workspaceDialogService = useService(WorkspaceDialogService);
   const openInfoModal = useCallback(() => {
@@ -179,12 +238,6 @@ export const PageHeaderMenuButton = ({
           : t['com.affine.toastMessage.defaultMode.page.message'](),
     });
   }, [primaryMode, editorService, t]);
-
-  const handleMenuOpenChange = useCallback((open: boolean) => {
-    if (open) {
-      track.$.header.docOptions.open();
-    }
-  }, []);
 
   const exportHandler = useExportPage();
 
@@ -295,12 +348,10 @@ export const PageHeaderMenuButton = ({
     openInAppService?.showOpenInAppPage();
   }, [openInAppService]);
 
-  const canEdit = useLiveData(docGuardService.can$(pageId, 'edit'));
-  const canMoveToTrash = useLiveData(
-    docGuardService.can$(pageId, 'move-to-trash')
-  );
+  const canEdit = useLiveData(guardService.can$('Doc_Update', pageId));
+  const canMoveToTrash = useLiveData(guardService.can$('Doc_Trash', pageId));
 
-  const EditMenu = (
+  return (
     <>
       {showResponsiveMenu ? ResponsiveMenuItems : null}
       {isMobile && mobileEditMenuItem}
@@ -416,36 +467,6 @@ export const PageHeaderMenuButton = ({
           {t['com.affine.header.option.open-in-desktop']()}
         </MenuItem>
       ) : null}
-    </>
-  );
-  if (isInTrash) {
-    return null;
-  }
-  return (
-    <>
-      <Menu
-        items={EditMenu}
-        contentOptions={{
-          align: 'center',
-        }}
-        rootOptions={{
-          onOpenChange: handleMenuOpenChange,
-        }}
-      >
-        <HeaderDropDownButton />
-      </Menu>
-      {workspace.flavour !== 'local' ? (
-        <PageHistoryModal
-          docCollection={workspace.docCollection}
-          open={historyModalOpen}
-          pageId={pageId}
-          onOpenChange={setHistoryModalOpen}
-        />
-      ) : null}
-      <HistoryTipsModal
-        open={openHistoryTipsModal}
-        setOpen={setOpenHistoryTipsModal}
-      />
     </>
   );
 };

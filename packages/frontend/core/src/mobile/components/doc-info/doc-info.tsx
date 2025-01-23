@@ -17,10 +17,7 @@ import type { DocCustomPropertyInfo } from '@affine/core/modules/db';
 import { DocsService } from '@affine/core/modules/doc';
 import { DocDatabaseBacklinkInfo } from '@affine/core/modules/doc-info';
 import { DocsSearchService } from '@affine/core/modules/docs-search';
-import {
-  DocGuardService,
-  GuardService,
-} from '@affine/core/modules/permissions';
+import { GuardService } from '@affine/core/modules/permissions';
 import { useI18n } from '@affine/i18n';
 import { PlusIcon } from '@blocksuite/icons/rc';
 import { LiveData, useLiveData, useServices } from '@toeverything/infra';
@@ -34,21 +31,17 @@ export const DocInfoSheet = ({
   docId: string;
   defaultOpenProperty?: DefaultOpenProperty;
 }) => {
-  const { docsSearchService, docsService, guardService, docGuardService } =
-    useServices({
-      DocsSearchService,
-      DocsService,
-      GuardService,
-      DocGuardService,
-    });
+  const { docsSearchService, docsService, guardService } = useServices({
+    DocsSearchService,
+    DocsService,
+    GuardService,
+  });
   const t = useI18n();
 
   const canEditPropertyInfo = useLiveData(
-    guardService.can$('edit-property-info')
+    guardService.can$('Workspace_Properties_Update')
   );
-  const canEditProperty = useLiveData(
-    docGuardService.can$(docId, 'edit-property')
-  );
+  const canEditProperty = useLiveData(guardService.can$('Doc_Update', docId));
   const links = useLiveData(
     useMemo(
       () => LiveData.from(docsSearchService.watchRefsFrom(docId), null),

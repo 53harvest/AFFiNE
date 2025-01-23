@@ -121,7 +121,7 @@ export const useExplorerDocNodeOperations = (
     track.$.navigationPanel.docs.createDoc({ control: 'linkDoc' });
     track.$.navigationPanel.docs.linkDoc({ control: 'createDoc' });
     options.openNodeCollapsed();
-  }, [createPage, docsService, docId, options]);
+  }, [createPage, docId, docsService, options]);
 
   const handleToggleFavoriteDoc = useCallback(() => {
     compatibleFavoriteItemsAdapter.toggle(docId, 'doc');
