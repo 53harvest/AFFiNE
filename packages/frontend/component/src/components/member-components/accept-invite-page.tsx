@@ -10,7 +10,7 @@ export const AcceptInvitePage = ({
   inviteInfo,
 }: {
   onOpenWorkspace: () => void;
-  inviteInfo: GetInviteInfoQuery['getInviteInfo'];
+  inviteInfo?: GetInviteInfoQuery['getInviteInfo'];
 }) => {
   const t = useI18n();
   return (
@@ -20,23 +20,23 @@ export const AcceptInvitePage = ({
         <div className={styles.content}>
           <div className={styles.userWrapper}>
             <Avatar
-              url={inviteInfo.user.avatarUrl || ''}
-              name={inviteInfo.user.name}
+              url={inviteInfo?.user.avatarUrl || ''}
+              name={inviteInfo?.user.name}
               size={20}
             />
-            <span className={styles.inviteName}>{inviteInfo.user.name}</span>
+            <span className={styles.inviteName}>{inviteInfo?.user.name}</span>
           </div>
           <div>{t['invited you to join']()}</div>
           <div className={styles.userWrapper}>
             <Avatar
-              url={`data:image/png;base64,${inviteInfo.workspace.avatar}`}
-              name={inviteInfo.workspace.name}
+              url={`data:image/png;base64,${inviteInfo?.workspace.avatar}`}
+              name={inviteInfo?.workspace.name}
               size={20}
               style={{ marginLeft: 4 }}
               colorfulFallback
             />
             <span className={styles.inviteName}>
-              {inviteInfo.workspace.name}
+              {inviteInfo?.workspace.name}
             </span>
           </div>
         </div>

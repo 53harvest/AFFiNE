@@ -12,12 +12,14 @@ export { AccountLoggedIn } from './events/account-logged-in';
 export { AccountLoggedOut } from './events/account-logged-out';
 export { ServerInitialized } from './events/server-initialized';
 export { ValidatorProvider } from './provider/validator';
+export { AcceptInviteService } from './services/accept-invite';
 export { AuthService } from './services/auth';
 export { CaptchaService } from './services/captcha';
 export { DefaultServerService } from './services/default-server';
 export { EventSourceService } from './services/eventsource';
 export { FetchService } from './services/fetch';
 export { GraphQLService } from './services/graphql';
+export { type InviteInfo, InviteInfoService } from './services/invite-info';
 export { InvoicesService } from './services/invoices';
 export { ServerService } from './services/server';
 export { ServersService } from './services/servers';
@@ -50,6 +52,7 @@ import { WorkspaceInvoices } from './entities/workspace-invoices';
 import { WorkspaceSubscription } from './entities/workspace-subscription';
 import { ValidatorProvider } from './provider/validator';
 import { ServerScope } from './scopes/server';
+import { AcceptInviteService } from './services/accept-invite';
 import { AuthService } from './services/auth';
 import { CaptchaService } from './services/captcha';
 import { CloudDocMetaService } from './services/cloud-doc-meta';
@@ -57,6 +60,7 @@ import { DefaultServerService } from './services/default-server';
 import { EventSourceService } from './services/eventsource';
 import { FetchService } from './services/fetch';
 import { GraphQLService } from './services/graphql';
+import { InviteInfoService } from './services/invite-info';
 import { InvoicesService } from './services/invoices';
 import { ServerService } from './services/server';
 import { ServersService } from './services/servers';
@@ -67,8 +71,10 @@ import { UserQuotaService } from './services/user-quota';
 import { WorkspaceInvoicesService } from './services/workspace-invoices';
 import { WorkspaceServerService } from './services/workspace-server';
 import { WorkspaceSubscriptionService } from './services/workspace-subscription';
+import { AcceptInviteStore } from './stores/accept-invite';
 import { AuthStore } from './stores/auth';
 import { CloudDocMetaStore } from './stores/cloud-doc-meta';
+import { InviteInfoStore } from './stores/invite-info';
 import { InvoicesStore } from './stores/invoices';
 import { ServerConfigStore } from './stores/server-config';
 import { ServerListStore } from './stores/server-list';
@@ -128,7 +134,11 @@ export function configureCloudModule(framework: Framework) {
     .store(UserFeatureStore, [GraphQLService])
     .service(InvoicesService)
     .store(InvoicesStore, [GraphQLService])
-    .entity(Invoices, [InvoicesStore]);
+    .entity(Invoices, [InvoicesStore])
+    .service(InviteInfoService, [InviteInfoStore])
+    .store(InviteInfoStore, [GraphQLService])
+    .service(AcceptInviteService, [AcceptInviteStore, InviteInfoService])
+    .store(AcceptInviteStore, [GraphQLService]);
 
   framework
     .scope(WorkspaceScope)

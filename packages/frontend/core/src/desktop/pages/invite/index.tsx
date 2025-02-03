@@ -1,65 +1,69 @@
+import { notify } from '@affine/component';
 import {
   AcceptInvitePage,
   JoinFailedPage,
 } from '@affine/component/member-components';
-import type { GetInviteInfoQuery } from '@affine/graphql';
-import {
-  acceptInviteByInviteIdMutation,
-  ErrorNames,
-  getInviteInfoQuery,
-  UserFriendlyError,
-} from '@affine/graphql';
+import { ErrorNames, UserFriendlyError } from '@affine/graphql';
 import { useLiveData, useService } from '@toeverything/infra';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
   RouteLogic,
   useNavigateHelper,
 } from '../../../components/hooks/use-navigate-helper';
-import { AuthService, GraphQLService } from '../../../modules/cloud';
-import { AppContainer } from '../../components/app-container';
+import {
+  AcceptInviteService,
+  AuthService,
+  InviteInfoService,
+} from '../../../modules/cloud';
 
 /**
  * /invite/:inviteId page
  *
  * only for web
  */
-const AcceptInvite = ({
-  inviteId,
-  inviteInfo,
-}: {
-  inviteId: string;
-  inviteInfo: GetInviteInfoQuery['getInviteInfo'];
-}) => {
+const AcceptInvite = () => {
   const { jumpToPage } = useNavigateHelper();
-  const graphqlService = useService(GraphQLService);
+  const acceptInviteService = useService(AcceptInviteService);
+  const inviteInfoService = useService(InviteInfoService);
+  const inviteInfo = useLiveData(inviteInfoService.inviteInfo$);
+  const error = useLiveData(acceptInviteService.error$);
+  const success = useLiveData(acceptInviteService.success$);
   const navigateHelper = useNavigateHelper();
-  const [error, setError] = useState<UserFriendlyError | null>(null);
 
   const openWorkspace = useCallback(() => {
+    if (!inviteInfo?.workspace.id) {
+      return;
+    }
     jumpToPage(inviteInfo.workspace.id, 'all', RouteLogic.REPLACE);
-  }, [inviteInfo.workspace.id, jumpToPage]);
+  }, [inviteInfo, jumpToPage]);
 
   useEffect(() => {
-    (async () => {
-      await graphqlService.gql({
-        query: acceptInviteByInviteIdMutation,
-        variables: {
-          workspaceId: inviteInfo.workspace.id,
-          inviteId,
-          sendAcceptMail: true,
-        },
-      });
-    })().catch(error => {
-      const userFriendlyError = UserFriendlyError.fromAnyError(error);
-      console.error(userFriendlyError);
-      if (userFriendlyError.name === ErrorNames.ALREADY_IN_SPACE) {
+    acceptInviteService.revalidate();
+  }, [acceptInviteService]);
+
+  useEffect(() => {
+    if (error) {
+      const err = UserFriendlyError.fromAnyError(error);
+      console.error(err);
+      if (err.name === ErrorNames.ALREADY_IN_SPACE) {
         return navigateHelper.jumpToIndex();
       }
-      setError(userFriendlyError);
-    });
-  }, [graphqlService, inviteId, inviteInfo, navigateHelper]);
+      notify.error({
+        title: err.name,
+        message: err.message,
+      });
+    }
+
+    if (success === false) {
+      return navigateHelper.jumpToExpired();
+    }
+  }, [error, navigateHelper, success]);
+
+  if (success === undefined) {
+    return null;
+  }
 
   if (error) {
     return <JoinFailedPage inviteInfo={inviteInfo} />;
@@ -97,43 +101,42 @@ export const Component = () => {
 };
 
 export const Middle = () => {
-  const graphqlService = useService(GraphQLService);
+  const inviteInfoService = useService(InviteInfoService);
   const params = useParams<{ inviteId: string }>();
   const navigateHelper = useNavigateHelper();
-
-  const [data, setData] = useState<{
-    inviteId: string;
-    inviteInfo: GetInviteInfoQuery['getInviteInfo'];
-  } | null>(null);
+  const inviteInfo = useLiveData(inviteInfoService.inviteInfo$);
+  const inviteId = useLiveData(inviteInfoService.inviteId$);
+  const error = useLiveData(inviteInfoService.error$);
 
   useEffect(() => {
-    (async () => {
-      setData(null);
-      const inviteId = params.inviteId || '';
-      const res = await graphqlService.gql({
-        query: getInviteInfoQuery,
-        variables: {
-          inviteId,
-        },
-      });
-
-      setData({
-        inviteId,
-        inviteInfo: res.getInviteInfo,
-      });
+    if (!params.inviteId) {
+      navigateHelper.jumpToExpired();
       return;
-    })().catch(error => {
-      const userFriendlyError = UserFriendlyError.fromAnyError(error);
-      console.error(userFriendlyError);
+    }
+    if (inviteId !== params.inviteId) {
+      inviteInfoService.setInviteId(params.inviteId);
+    }
+  }, [inviteId, inviteInfoService, navigateHelper, params.inviteId]);
 
-      // If the inviteId is invalid, redirect to expired page
-      return navigateHelper.jumpToExpired();
-    });
-  }, [graphqlService, navigateHelper, params.inviteId]);
+  useEffect(() => {
+    inviteInfoService.revalidate();
+  }, [inviteInfoService]);
 
-  if (!data) {
-    return <AppContainer fallback />;
+  useEffect(() => {
+    if (error) {
+      const err = UserFriendlyError.fromAnyError(error);
+      console.error(err);
+      notify.error({
+        title: err.name,
+        message: err.message,
+      });
+      navigateHelper.jumpToExpired();
+    }
+  }, [error, navigateHelper]);
+
+  if (!inviteInfo) {
+    return null;
   }
 
-  return <AcceptInvite inviteId={data.inviteId} inviteInfo={data.inviteInfo} />;
+  return <AcceptInvite />;
 };
