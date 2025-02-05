@@ -10,6 +10,7 @@ import {
 import type { GfxToolsFullOptionValue } from '@blocksuite/block-std/gfx';
 import type { Bound } from '@blocksuite/global/utils';
 import { SignalWatcher } from '@blocksuite/global/utils';
+import * as icons from '@blocksuite/icons/lit';
 import { computed } from '@preact/signals-core';
 import { css, html, LitElement, nothing } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
@@ -23,6 +24,8 @@ import { getMindMaps } from './assets.js';
 import {
   type DraggableTool,
   getMindmapRender,
+  mediaConfig,
+  mediaRender,
   mindmapConfig,
   textConfig,
   textRender,
@@ -143,6 +146,13 @@ export class EdgelessMindmapToolButton extends EdgelessToolbarToolMixin(
       this.mindmaps.find(m => m.style === style) || this.mindmaps[0];
     return [
       {
+        name: 'media',
+        icon: icons.ImageIcon(),
+        config: mediaConfig,
+        standardWidth: 100,
+        render: mediaRender,
+      },
+      {
         name: 'text',
         icon: textIcon,
         config: textConfig,
@@ -244,14 +254,22 @@ export class EdgelessMindmapToolButton extends EdgelessToolbarToolMixin(
         this.readyToDrop = false;
       },
       onDrop: (el, bound) => {
-        const id = el.data.render(bound, this.edgeless.service, this.edgeless);
-        this.readyToDrop = false;
-        if (el.data.name === 'mindmap') {
-          this.setEdgelessTool({ type: 'default' });
-          this.edgeless.gfx.selection.set({ elements: [id], editing: false });
-        } else if (el.data.name === 'text') {
-          this.setEdgelessTool({ type: 'default' });
-        }
+        el.data
+          .render(bound, this.edgeless.service, this.edgeless)
+          .then(id => {
+            if (!id) return;
+            this.readyToDrop = false;
+            if (el.data.name === 'mindmap') {
+              this.setEdgelessTool({ type: 'default' });
+              this.edgeless.gfx.selection.set({
+                elements: [id],
+                editing: false,
+              });
+            } else if (el.data.name === 'text') {
+              this.setEdgelessTool({ type: 'default' });
+            }
+          })
+          .catch(console.error);
       },
     });
 

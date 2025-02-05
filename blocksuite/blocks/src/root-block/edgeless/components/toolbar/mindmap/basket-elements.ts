@@ -1,9 +1,16 @@
+import { addAttachments } from '@blocksuite/affine-block-attachment';
+import { addImages } from '@blocksuite/affine-block-image';
 import { CanvasElementType } from '@blocksuite/affine-block-surface';
-import { type MindmapStyle, TextElementModel } from '@blocksuite/affine-model';
+import {
+  MAX_IMAGE_WIDTH,
+  type MindmapStyle,
+  TextElementModel,
+} from '@blocksuite/affine-model';
 import {
   FeatureFlagService,
   TelemetryProvider,
 } from '@blocksuite/affine-shared/services';
+import { openFileOrFiles } from '@blocksuite/affine-shared/utils';
 import { assertInstanceOf, Bound } from '@blocksuite/global/utils';
 import type { TemplateResult } from 'lit';
 import * as Y from 'yjs';
@@ -18,7 +25,7 @@ export type ConfigStyle = Partial<Record<ConfigProperty, number | string>>;
 export type ToolConfig = Record<ConfigState, ConfigStyle>;
 
 export type DraggableTool = {
-  name: 'text' | 'mindmap';
+  name: 'text' | 'mindmap' | 'media';
   icon: TemplateResult;
   config: ToolConfig;
   standardWidth?: number;
@@ -26,7 +33,7 @@ export type DraggableTool = {
     bound: Bound,
     edgelessService: EdgelessRootService,
     edgeless: EdgelessRootBlockComponent
-  ) => string;
+  ) => Promise<string | null>;
 };
 
 const unitMap = { x: 'px', y: 'px', r: 'deg', s: '', z: '', o: '' };
@@ -42,10 +49,16 @@ export const mindmapConfig: ToolConfig = {
   hover: { x: 11, y: -14, r: 9, s: 1.16, z: 3 },
   next: { y: 64, r: 0 },
 };
+export const mediaConfig: ToolConfig = {
+  default: { x: 18, y: 25, r: -7, s: 1, z: 1 },
+  active: { x: 11, y: -14, r: 9, s: 1 },
+  hover: { x: 11, y: -14, r: 9, s: 1.16, z: 3 },
+  next: { y: 64, r: 0 },
+};
 
 export const getMindmapRender =
   (mindmapStyle: MindmapStyle): DraggableTool['render'] =>
-  (bound, edgelessService) => {
+  async (bound, edgelessService) => {
     const [x, y, _, h] = bound.toXYWH();
 
     const rootW = 145;
@@ -97,7 +110,8 @@ export const getMindmapRender =
 
     return mindmapId;
   };
-export const textRender: DraggableTool['render'] = (
+
+export const textRender: DraggableTool['render'] = async (
   bound,
   service,
   edgeless
@@ -136,6 +150,41 @@ export const textRender: DraggableTool['render'] = (
     type: 'text',
   });
 
+  return id;
+};
+
+export const mediaRender: DraggableTool['render'] = async (
+  bound,
+  _,
+  edgeless
+) => {
+  let file: File | null = null;
+  try {
+    file = await openFileOrFiles();
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+  if (!file) return null;
+
+  // image
+  if (file.type.startsWith('image/')) {
+    const [id] = await addImages(edgeless.std, [file], {
+      point: [bound.x, bound.y],
+      maxWidth: MAX_IMAGE_WIDTH,
+      transformPoint: false,
+    });
+    if (id) return id;
+    return null;
+  }
+
+  // attachment
+  const [id] = await addAttachments(
+    edgeless.std,
+    [file],
+    [bound.x, bound.y],
+    false
+  );
   return id;
 };
 
