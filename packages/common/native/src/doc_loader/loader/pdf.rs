@@ -8,8 +8,7 @@ pub struct PdfExtractLoader {
 
 impl PdfExtractLoader {
   pub fn new<R: Read>(reader: R) -> Result<Self, LoaderError> {
-    let document = pdf_extract::Document::load_from(reader)
-      .map_err(|e| LoaderError::OtherError(e.to_string()))?;
+    let document = pdf_extract::Document::load_from(reader)?;
     Ok(Self { document })
   }
 }
@@ -18,7 +17,7 @@ impl PdfExtractLoader {
   fn extract_text(&self) -> Result<String, LoaderError> {
     let mut buffer: Vec<u8> = Vec::new();
     let mut output = PlainTextOutput::new(&mut buffer as &mut dyn std::io::Write);
-    output_doc(&self.document, &mut output).map_err(|e| LoaderError::OtherError(e.to_string()))?;
+    output_doc(&self.document, &mut output)?;
     Ok(String::from_utf8(buffer)?)
   }
 
