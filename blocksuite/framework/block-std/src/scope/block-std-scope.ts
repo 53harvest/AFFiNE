@@ -134,7 +134,7 @@ export class BlockStdScope {
     this.provider = this.container.provider(undefined, this.store.provider);
 
     this._lifeCycleWatchers.forEach(watcher => {
-      watcher.created.call(watcher);
+      watcher.created();
     });
   }
 
@@ -182,7 +182,7 @@ export class BlockStdScope {
 
   mount() {
     this._lifeCycleWatchers.forEach(watcher => {
-      watcher.mounted.call(watcher);
+      watcher.mounted();
     });
   }
 
@@ -192,7 +192,7 @@ export class BlockStdScope {
     element.doc = this.store;
     this._getHost = () => element;
     this._lifeCycleWatchers.forEach(watcher => {
-      watcher.rendered.call(watcher);
+      watcher.rendered();
     });
 
     return element;
@@ -200,7 +200,7 @@ export class BlockStdScope {
 
   unmount() {
     this._lifeCycleWatchers.forEach(watcher => {
-      watcher.unmounted.call(watcher);
+      watcher.unmounted();
     });
     this._getHost = () => null as unknown as EditorHost;
   }
