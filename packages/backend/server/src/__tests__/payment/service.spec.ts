@@ -7,7 +7,7 @@ import Sinon from 'sinon';
 import Stripe from 'stripe';
 
 import { AppModule } from '../../app.module';
-import { EventEmitter, Runtime } from '../../base';
+import { EventBus, Runtime } from '../../base';
 import { ConfigModule } from '../../base/config';
 import { CurrentUser } from '../../core/auth';
 import { AuthService } from '../../core/auth/service';
@@ -158,7 +158,7 @@ const test = ava as TestFn<{
   db: PrismaClient;
   app: INestApplication;
   service: SubscriptionService;
-  event: Sinon.SinonStubbedInstance<EventEmitter>;
+  event: Sinon.SinonStubbedInstance<EventBus>;
   feature: Sinon.SinonStubbedInstance<FeatureManagementService>;
   runtime: Sinon.SinonStubbedInstance<Runtime>;
   stripe: {
@@ -203,14 +203,12 @@ test.before(async t => {
       m.overrideProvider(FeatureManagementService).useValue(
         Sinon.createStubInstance(FeatureManagementService)
       );
-      m.overrideProvider(EventEmitter).useValue(
-        Sinon.createStubInstance(EventEmitter)
-      );
+      m.overrideProvider(EventBus).useValue(Sinon.createStubInstance(EventBus));
       m.overrideProvider(Runtime).useValue(Sinon.createStubInstance(Runtime));
     },
   });
 
-  t.context.event = app.get(EventEmitter);
+  t.context.event = app.get(EventBus);
   t.context.service = app.get(SubscriptionService);
   t.context.feature = app.get(FeatureManagementService);
   t.context.runtime = app.get(Runtime);
@@ -1537,7 +1535,7 @@ test('should be able to subscribe onetime payment subscription', async t => {
   );
 });
 
-test('should be able to recalculate onetime payment subscription period', async t => {
+test('should be able to accumulate onetime payment subscription period', async t => {
   const { service, db, u1 } = t.context;
 
   await service.saveStripeInvoice(onetimeMonthlyInvoice);
@@ -1549,15 +1547,6 @@ test('should be able to recalculate onetime payment subscription period', async 
   t.truthy(subInDB);
 
   let end = subInDB!.end!;
-  await service.saveStripeInvoice(onetimeMonthlyInvoice);
-  subInDB = await db.subscription.findFirst({
-    where: { targetId: u1.id },
-  });
-
-  // add 30 days
-  t.is(subInDB!.end!.getTime(), end.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-  end = subInDB!.end!;
   await service.saveStripeInvoice(onetimeYearlyInvoice);
   subInDB = await db.subscription.findFirst({
     where: { targetId: u1.id },
@@ -1565,6 +1554,16 @@ test('should be able to recalculate onetime payment subscription period', async 
 
   // add 365 days
   t.is(subInDB!.end!.getTime(), end.getTime() + 365 * 24 * 60 * 60 * 1000);
+});
+
+test('should be able to recalculate onetime payment subscription period after expiration', async t => {
+  const { service, db, u1 } = t.context;
+
+  await service.saveStripeInvoice(onetimeMonthlyInvoice);
+
+  let subInDB = await db.subscription.findFirst({
+    where: { targetId: u1.id },
+  });
 
   // make subscription expired
   await db.subscription.update({
@@ -1579,6 +1578,24 @@ test('should be able to recalculate onetime payment subscription period', async 
   });
 
   // add 365 days from now
+  t.is(
+    subInDB?.end?.toDateString(),
+    new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toDateString()
+  );
+});
+
+test('should not accumulate onetime payment subscription period for redeemed invoices', async t => {
+  const { service, db, u1 } = t.context;
+
+  // save invoices received more than once, should only redeem them once.
+  await service.saveStripeInvoice(onetimeYearlyInvoice);
+  await service.saveStripeInvoice(onetimeYearlyInvoice);
+  await service.saveStripeInvoice(onetimeYearlyInvoice);
+
+  const subInDB = await db.subscription.findFirst({
+    where: { targetId: u1.id },
+  });
+
   t.is(
     subInDB?.end?.toDateString(),
     new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toDateString()

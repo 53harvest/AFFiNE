@@ -1,3 +1,4 @@
+import { changeNoteDisplayMode } from '@blocksuite/affine-block-note';
 import { EdgelessCRUDIdentifier } from '@blocksuite/affine-block-surface';
 import type {
   EdgelessColorPickerButton,
@@ -195,32 +196,11 @@ export class EdgelessChangeNoteButton extends WithDisposable(LitElement) {
   }
 
   private _setDisplayMode(note: NoteBlockModel, newMode: NoteDisplayMode) {
-    const { displayMode: currentMode } = note;
-    if (newMode === currentMode) {
-      return;
-    }
-
-    this.doc.captureSync();
-
-    this.crud.updateElement(note.id, { displayMode: newMode });
-
-    const noteParent = this.doc.getParent(note);
-    if (!noteParent) return;
-
-    const noteParentChildNotes = noteParent.children.filter(block =>
-      matchFlavours(block, ['affine:note'])
-    );
-    const noteParentLastNote =
-      noteParentChildNotes[noteParentChildNotes.length - 1];
-
-    if (
-      currentMode === NoteDisplayMode.EdgelessOnly &&
-      newMode !== NoteDisplayMode.EdgelessOnly &&
-      note !== noteParentLastNote
-    ) {
-      // move to the end
-      this.doc.moveBlocks([note], noteParent, noteParentLastNote, false);
-    }
+    this.edgeless.std.command.exec(changeNoteDisplayMode, {
+      noteId: note.id,
+      mode: newMode,
+      stopCapture: true,
+    });
 
     // if change note to page only, should clear the selection
     if (newMode === NoteDisplayMode.DocOnly) {

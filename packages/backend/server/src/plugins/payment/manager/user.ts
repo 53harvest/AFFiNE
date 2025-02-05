@@ -5,12 +5,14 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 
 import {
-  EventEmitter,
+  EventBus,
   InternalServerError,
   InvalidCheckoutParameters,
+  Mutex,
   Runtime,
   SubscriptionAlreadyExists,
   SubscriptionPlanNotFound,
+  TooManyRequest,
   URLHelper,
 } from '../../../base';
 import {
@@ -58,8 +60,9 @@ export class UserSubscriptionManager extends SubscriptionManager {
     db: PrismaClient,
     private readonly runtime: Runtime,
     private readonly feature: FeatureManagementService,
-    private readonly event: EventEmitter,
-    private readonly url: URLHelper
+    private readonly event: EventBus,
+    private readonly url: URLHelper,
+    private readonly mutex: Mutex
   ) {
     super(stripe, db);
   }
@@ -224,23 +227,6 @@ export class UserSubscriptionManager extends SubscriptionManager {
 
     const subscriptionData = this.transformSubscription(subscription);
 
-    // @deprecated backward compatibility
-    await this.db.deprecatedUserSubscription.upsert({
-      where: {
-        stripeSubscriptionId: stripeSubscription.id,
-      },
-      update: pick(subscriptionData, [
-        'status',
-        'stripeScheduleId',
-        'nextBillAt',
-        'canceledAt',
-      ]),
-      create: {
-        userId,
-        ...omit(subscriptionData, 'quantity'),
-      },
-    });
-
     return this.db.subscription.upsert({
       where: {
         stripeSubscriptionId: stripeSubscription.id,
@@ -271,13 +257,6 @@ export class UserSubscriptionManager extends SubscriptionManager {
       },
     });
 
-    // @deprecated backward compatibility
-    await this.db.deprecatedUserSubscription.deleteMany({
-      where: {
-        stripeSubscriptionId: stripeSubscription.id,
-      },
-    });
-
     if (deleted.count > 0) {
       this.event.emit('user.subscription.canceled', {
         userId,
@@ -288,17 +267,6 @@ export class UserSubscriptionManager extends SubscriptionManager {
   }
 
   async cancelSubscription(subscription: Subscription) {
-    // @deprecated backward compatibility
-    await this.db.deprecatedUserSubscription.updateMany({
-      where: {
-        stripeSubscriptionId: subscription.stripeSubscriptionId,
-      },
-      data: {
-        canceledAt: new Date(),
-        nextBillAt: null,
-      },
-    });
-
     return this.db.subscription.update({
       where: {
         // @ts-expect-error checked outside
@@ -312,17 +280,6 @@ export class UserSubscriptionManager extends SubscriptionManager {
   }
 
   async resumeSubscription(subscription: Subscription) {
-    // @deprecated backward compatibility
-    await this.db.deprecatedUserSubscription.updateMany({
-      where: {
-        stripeSubscriptionId: subscription.stripeSubscriptionId,
-      },
-      data: {
-        canceledAt: null,
-        nextBillAt: subscription.end,
-      },
-    });
-
     return this.db.subscription.update({
       where: {
         // @ts-expect-error checked outside
@@ -339,14 +296,6 @@ export class UserSubscriptionManager extends SubscriptionManager {
     subscription: Subscription,
     recurring: SubscriptionRecurring
   ) {
-    // @deprecated backward compatibility
-    await this.db.deprecatedUserSubscription.updateMany({
-      where: {
-        stripeSubscriptionId: subscription.stripeSubscriptionId,
-      },
-      data: { recurring },
-    });
-
     return this.db.subscription.update({
       where: {
         // @ts-expect-error checked outside
@@ -393,19 +342,7 @@ export class UserSubscriptionManager extends SubscriptionManager {
 
     const invoiceData = await this.transformInvoice(knownInvoice);
 
-    // @deprecated backward compatibility
-    await this.db.deprecatedUserInvoice.upsert({
-      where: {
-        stripeInvoiceId: stripeInvoice.id,
-      },
-      update: omit(invoiceData, 'stripeInvoiceId'),
-      create: {
-        userId,
-        ...invoiceData,
-      },
-    });
-
-    const invoice = this.db.invoice.upsert({
+    const invoice = await this.db.invoice.upsert({
       where: {
         stripeInvoiceId: stripeInvoice.id,
       },
@@ -419,6 +356,14 @@ export class UserSubscriptionManager extends SubscriptionManager {
     // onetime and lifetime subscription is a special "subscription" that doesn't get involved with stripe subscription system
     // we track the deals by invoice only.
     if (stripeInvoice.status === 'paid') {
+      await using lock = await this.mutex.acquire(
+        `redeem-onetime-subscription:${stripeInvoice.id}`
+      );
+
+      if (!lock) {
+        throw new TooManyRequest();
+      }
+
       if (lookupKey.recurring === SubscriptionRecurring.Lifetime) {
         await this.saveLifetimeSubscription(knownInvoice);
       } else if (lookupKey.variant === SubscriptionVariant.Onetime) {
@@ -429,9 +374,7 @@ export class UserSubscriptionManager extends SubscriptionManager {
     return invoice;
   }
 
-  async saveLifetimeSubscription(
-    knownInvoice: KnownStripeInvoice
-  ): Promise<Subscription> {
+  async saveLifetimeSubscription(knownInvoice: KnownStripeInvoice) {
     this.assertUserIdExists(knownInvoice.userId);
 
     // cancel previous non-lifetime subscription
@@ -444,10 +387,9 @@ export class UserSubscriptionManager extends SubscriptionManager {
       },
     });
 
-    let subscription: Subscription;
     if (prevSubscription) {
       if (prevSubscription.stripeSubscriptionId) {
-        subscription = await this.db.subscription.update({
+        await this.db.subscription.update({
           where: {
             id: prevSubscription.id,
           },
@@ -469,11 +411,9 @@ export class UserSubscriptionManager extends SubscriptionManager {
             prorate: true,
           }
         );
-      } else {
-        subscription = prevSubscription;
       }
     } else {
-      subscription = await this.db.subscription.create({
+      await this.db.subscription.create({
         data: {
           targetId: knownInvoice.userId,
           stripeSubscriptionId: null,
@@ -492,17 +432,37 @@ export class UserSubscriptionManager extends SubscriptionManager {
       plan: knownInvoice.lookupKey.plan,
       recurring: SubscriptionRecurring.Lifetime,
     });
-
-    return subscription;
   }
 
-  async saveOnetimePaymentSubscription(
-    knownInvoice: KnownStripeInvoice
-  ): Promise<Subscription> {
+  async saveOnetimePaymentSubscription(knownInvoice: KnownStripeInvoice) {
     this.assertUserIdExists(knownInvoice.userId);
+    const { userId, lookupKey, stripeInvoice } = knownInvoice;
 
-    // TODO(@forehalo): identify whether the invoice has already been redeemed.
-    const { userId, lookupKey } = knownInvoice;
+    const invoice = await this.db.invoice.findUnique({
+      where: {
+        stripeInvoiceId: stripeInvoice.id,
+      },
+    });
+
+    if (!invoice) {
+      // never happens
+      throw new InternalServerError('Invoice not found');
+    }
+
+    if (invoice.onetimeSubscriptionRedeemed) {
+      return;
+    }
+
+    await this.db.invoice.update({
+      select: {
+        onetimeSubscriptionRedeemed: true,
+      },
+      where: {
+        stripeInvoiceId: stripeInvoice.id,
+      },
+      data: { onetimeSubscriptionRedeemed: true },
+    });
+
     const existingSubscription = await this.db.subscription.findUnique({
       where: {
         targetId_plan: {

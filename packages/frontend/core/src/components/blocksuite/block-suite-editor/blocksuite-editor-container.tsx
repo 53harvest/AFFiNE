@@ -1,6 +1,10 @@
 import { FeatureFlagService } from '@affine/core/modules/feature-flag';
-import { type DocMode, getLastNoteBlock } from '@blocksuite/affine/blocks';
-import { Slot } from '@blocksuite/affine/global/utils';
+import {
+  appendParagraphCommand,
+  type DocMode,
+  focusBlockEnd,
+  getLastNoteBlock,
+} from '@blocksuite/affine/blocks';
 import type {
   AffineEditorContainer,
   DocTitle,
@@ -15,7 +19,6 @@ import {
   forwardRef,
   useCallback,
   useImperativeHandle,
-  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -33,13 +36,6 @@ interface BlocksuiteEditorContainerProps {
   style?: React.CSSProperties;
 }
 
-// mimic the interface of the webcomponent and expose slots & host
-type BlocksuiteEditorContainerRef = Pick<
-  (typeof AffineEditorContainer)['prototype'],
-  'mode' | 'doc' | 'slots' | 'host'
-> &
-  HTMLDivElement;
-
 export const BlocksuiteEditorContainer = forwardRef<
   AffineEditorContainer,
   BlocksuiteEditorContainerProps
@@ -54,23 +50,11 @@ export const BlocksuiteEditorContainer = forwardRef<
   const featureFlags = useService(FeatureFlagService).flags;
   const enableEditorRTL = useLiveData(featureFlags.enable_editor_rtl.$);
 
-  const slots: BlocksuiteEditorContainerRef['slots'] = useMemo(() => {
-    return {
-      editorModeSwitched: new Slot(),
-      docUpdated: new Slot(),
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    slots.docUpdated.emit({ newDocId: page.id });
-  }, [page, slots.docUpdated]);
-
   /**
    * mimic an AffineEditorContainer using proxy
    */
   const affineEditorContainerProxy = useMemo(() => {
     const api = {
-      slots,
       get page() {
         return page;
       },
@@ -128,7 +112,7 @@ export const BlocksuiteEditorContainer = forwardRef<
     }) as unknown as AffineEditorContainer & { origin: HTMLDivElement };
 
     return proxy;
-  }, [mode, page, slots]);
+  }, [mode, page]);
 
   useImperativeHandle(ref, () => affineEditorContainerProxy, [
     affineEditorContainerProxy,
@@ -148,14 +132,15 @@ export const BlocksuiteEditorContainer = forwardRef<
         lastBlock.flavour === 'affine:paragraph' &&
         lastBlock.text?.length === 0
       ) {
-        std.command.exec('focusBlockEnd' as never, {
-          focusBlock: std.view.getBlock(lastBlock.id) as never,
+        const focusBlock = std.view.getBlock(lastBlock.id) ?? undefined;
+        std.command.exec(focusBlockEnd, {
+          focusBlock,
         });
         return;
       }
     }
 
-    std.command.exec('appendParagraph' as never, {});
+    std.command.exec(appendParagraphCommand);
   }, [affineEditorContainerProxy, page, shared]);
 
   return (
